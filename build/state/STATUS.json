@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-13T02:31:35.562758",
+  "updated": "2026-06-12T00:00:00Z",
   "current_task": null,
   "tasks": {
     "T01": {
@@ -35,10 +35,10 @@
       "name": "risk-manager-tests",
       "phase": "P1",
       "deps": [],
-      "status": "PENDING",
-      "acceptance": null,
-      "commit": null,
-      "notes": ""
+      "status": "DONE",
+      "acceptance": "PASS: tests/test_risk.py 18 boundary cases green; exact $50K/$2K/MNQ numbers (98pt/$196 ALLOW 1, 2-lot $392 DOWNSIZE to 1, 100pt boundary, DD/session HALT, daily-align+buffer, max-contracts clamp, FLAT-when-halted). No manager gaps found.",
+      "commit": "7595519",
+      "notes": "Manager already correct; tests-only task. test_core regression still green."
     },
     "T05": {
       "name": "walkforward-framework",
