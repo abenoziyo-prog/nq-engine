@@ -1,0 +1,10 @@
+For each SPEC_ONLY hypothesis queued by P4:
+1. Implement the rules exactly as specified using the shared engine modules.
+2. Backtest on the in-sample window with full friction; run the factorial sweep
+   (3-5 levels per variable) and report MAIN EFFECTS, not just the top cell.
+3. Run the drift control. Compute the standard stat block per config.
+4. If the robust region (median across the neighborhood, not the peak) clears
+   PF > 1.5 AND beats drift control, advance status SPEC_ONLY -> CANDIDATE and
+   freeze the config. Else mark FALSIFIED with the reason and add to the registry.
+5. Write everything to the vault. Notify with one line per hypothesis: promoted/killed + why.
+Be skeptical of high PF on small n; always report effective (day-level) sample size.

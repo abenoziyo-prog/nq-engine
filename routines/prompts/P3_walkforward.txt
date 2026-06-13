@@ -1,0 +1,9 @@
+For each FROZEN strategy, run the frozen config (do NOT re-tune) against the most
+recent out-of-sample window not yet tested (track 'last_oos_through' per strategy
+in the vault).
+1. Produce the standard stat block (n, win%, total, PF, maxDD, Sharpe, avg/max W/L).
+2. Compare to the strategy's in-sample stats. Compute the OOS/IS PF ratio.
+3. If OOS PF < 1.0 OR OOS/IS ratio < 0.4, propose status change to DEGRADED and notify.
+   If OOS holds, advance 'last_oos_through' and note PASS.
+4. Always run the drift control (random same-session entries) as the benchmark.
+Write all results to the vault. Recommend, do not auto-promote past shadow stage.

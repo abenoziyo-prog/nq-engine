@@ -1,0 +1,24 @@
+# nq-engine research-loop crontab  (VPS route)
+# Install with:  crontab nq-engine.crontab
+# Times are in the server's local zone — set the VPS to America/New_York:
+#   sudo timedatectl set-timezone America/New_York
+#
+# Each line: minute hour day-of-month month day-of-week  command
+# Chained prompts (P2 after P1) are offset by 5 minutes rather than true event-chaining
+# (cron has no completion triggers; the headless runs are short).
+
+# --- TIER 1: daily, Mon-Fri, after Globex close ---
+15 17 * * 1-5  /home/trader/nq-engine/scripts/run_routine.sh P1_eod.txt
+20 17 * * 1-5  /home/trader/nq-engine/scripts/run_routine.sh P2_drift.txt
+
+# --- TIER 2: weekly, Sunday pre-open ---
+0 12 * * 0     /home/trader/nq-engine/scripts/run_routine.sh P3_walkforward.txt
+10 12 * * 0    /home/trader/nq-engine/scripts/run_routine.sh P4_hypothesis.txt
+25 12 * * 0    /home/trader/nq-engine/scripts/run_routine.sh P5_backtest_queue.txt
+
+# --- TIER 3: monthly, 1st of month ---
+0 12 1 * *     /home/trader/nq-engine/scripts/run_routine.sh P6_regime_audit.txt
+20 12 1 * *    /home/trader/nq-engine/scripts/run_routine.sh P7_vault_audit.txt
+
+# --- health: heartbeat every 30 min so you know the box is alive ---
+*/30 * * * *   /home/trader/nq-engine/scripts/heartbeat.sh

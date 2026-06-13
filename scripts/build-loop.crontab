@@ -1,0 +1,17 @@
+# nq-engine BUILD-LOOP crontab
+# Separate from the research-loop cron. This drives the build agent that constructs
+# the codebase task-by-task. Runs frequently while there's work, then goes idle.
+#
+# Install:  crontab -l > current && cat build-loop.crontab >> current && crontab current
+# Server timezone should be America/New_York.
+#
+# Cadence rationale: build runs are short (one task each). Firing every 2 hours lets the
+# build progress steadily without burning API budget. The agent self-reports "idle" when
+# no task is workable (e.g. waiting on keys), so over-firing is cheap but not free —
+# the cost-guard (T23) caps daily spend.
+
+# build agent: every 2 hours, 24/7 (build doesn't care about market hours)
+0 */2 * * *   /home/trader/nq-engine/scripts/run_build.sh
+
+# daily build digest: summarize the day's BUILDLOG to the operator at 18:00 ET
+0 18 * * *    /home/trader/nq-engine/scripts/build_digest.sh

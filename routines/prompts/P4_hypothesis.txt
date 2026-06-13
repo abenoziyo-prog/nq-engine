@@ -1,0 +1,11 @@
+Read the vault's validated findings and falsified registry. Propose 2-3 NEW testable
+hypotheses for the NQ engine that:
+  - are NOT in the falsified registry (check the registry rules; never re-propose
+    confirmed-cross indicator triggers or anything marked FALSIFIED)
+  - are expressed in session-context or structure terms (location/timing/regime),
+    consistent with the project's finding that location/context carries edge and
+    bare indicators do not
+  - specify exact, a-priori, backtestable rules and a pre-registered sample threshold
+For each, before any verdict, sweep timing variants (anticipatory/confirmed/delayed)
+per the binding process rule. Write each hypothesis as a SPEC_ONLY vault entry with
+status and 'next' steps. Queue them for P5. Notify with the shortlist.

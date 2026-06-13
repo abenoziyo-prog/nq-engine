@@ -1,0 +1,8 @@
+Compare any live/paper fills logged today (in /logs/fills) against the backtest
+assumption (1pt friction, bar-close entry) for each active strategy.
+1. For each fill, compute realized slippage vs assumed.
+2. If median slippage over the trailing 20 fills exceeds 1.5pt for any strategy,
+   raise a DRIFT_ALERT in the vault and notify: the strategy's live edge is being
+   eroded by execution; recommend re-marking its expected PF.
+3. If no fills today, write "no fills" and exit.
+Never adjust live sizing yourself — only flag and recommend.

@@ -1,0 +1,76 @@
+//@version=6
+// ============================================================================
+//  V4 — EMA proximity + acceleration, long-only  (FROZEN CONFIG)
+//  Mirrors strategy_vault.json :: EMA_PROX_V4_5M
+//  Fires structured webhook JSON on ENTRY and EXIT for a bridge to execute.
+//  Run on the 5-minute MNQ/NQ chart. Use bar-close alerts only.
+// ============================================================================
+strategy("V4 Long — EMA Prox+Accel", overlay=true,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     calc_on_every_tick=false, process_orders_on_close=true)
+
+// ---- frozen parameters (do not tune live; change only via research loop) ----
+fastLen   = input.int(9,  "Fast EMA")
+slowLen   = input.int(50, "Slow EMA")
+atrLen    = input.int(14, "ATR length")
+kAtr      = input.float(0.02, "Proximity k (xATR)", step=0.005)
+stopAtr   = input.float(4.0,  "Catastrophe stop (xATR)", step=0.5)
+useDaily  = input.bool(true,  "Daily-align sizing (+1 unit)")
+acctRiskPts = input.float(0.0, "Override risk note (pts, 0=ATR)")
+
+// ---- state ----
+emaF = ta.ema(close, fastLen)
+emaS = ta.ema(close, slowLen)
+atr  = ta.atr(atrLen)
+g    = emaF - emaS
+dG   = g - g[1]
+ddG  = dG - dG[1]
+k    = kAtr * atr
+
+// daily 9x50 gap for the asymmetric size tier (request.security, no repaint: prior daily)
+dC   = request.security(syminfo.tickerid, "D", close[1], lookahead=barmerge.lookahead_off)
+dEf  = ta.ema(dC, fastLen)
+dEs  = ta.ema(dC, slowLen)
+dGap = dEf - dEs
+dRising = dGap > dGap[1]
+dailyAligned = (dGap > 0) and dRising
+
+// ---- signals (entry: anticipated upcross, accelerating; exit: anticipated downcross) ----
+longEntry = strategy.position_size == 0 and math.abs(g) <= k and g < 0 and dG > 0 and ddG > 0
+longExit  = strategy.position_size  > 0 and math.abs(g) <= k and g > 0 and dG < 0
+
+qty = (useDaily and dailyAligned) ? 2 : 1
+stopDist = stopAtr * atr
+
+// ---- execution (paper/visual; live execution handled by the bridge via alerts) ----
+if longEntry
+    strategy.entry("L", strategy.long, qty=qty)
+    strategy.exit("Lstop", "L", stop=close - stopDist)   // catastrophe floor only
+if longExit
+    strategy.close("L", comment="signal exit")
+
+// ---- visuals ----
+plot(emaF, "EMA9", color.new(color.aqua, 0))
+plot(emaS, "EMA50", color.new(color.orange, 0))
+bgcolor(dailyAligned ? color.new(color.green, 92) : na)
+plotshape(longEntry, "entry", shape.triangleup, location.belowbar, color.new(color.green,0), size=size.small)
+plotshape(longExit,  "exit",  shape.triangledown, location.abovebar, color.new(color.red,0), size=size.small)
+
+// ---- webhook payloads (paste {{strategy.order.alert_message}} into the alert) ----
+// Entry JSON includes everything the bridge needs to size + bracket.
+entryMsg = '{"strategy":"V4_LONG","action":"BUY","symbol":"' + syminfo.ticker + '"' +
+     ',"qty":' + str.tostring(qty) +
+     ',"price":' + str.tostring(close) +
+     ',"atr":' + str.tostring(atr, "#.##") +
+     ',"stop_dist":' + str.tostring(stopDist, "#.##") +
+     ',"daily_aligned":' + (dailyAligned ? "true" : "false") +
+     ',"bar_time":' + str.tostring(time) + ',"automated":true}'
+exitMsg  = '{"strategy":"V4_LONG","action":"FLAT","symbol":"' + syminfo.ticker + '"' +
+     ',"price":' + str.tostring(close) + ',"bar_time":' + str.tostring(time) + ',"automated":true}'
+
+alertcondition(longEntry, "V4 Long Entry", message='')
+alertcondition(longExit,  "V4 Long Exit",  message='')
+if longEntry
+    alert(entryMsg, alert.freq_once_per_bar_close)
+if longExit
+    alert(exitMsg,  alert.freq_once_per_bar_close)

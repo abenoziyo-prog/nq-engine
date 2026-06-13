@@ -1,0 +1,6 @@
+Audit strategy_vault.json: every entry has a valid status, a complete stat block or a
+clear reason for null, and a 'next' field. Verify no FROZEN strategy's rules were
+silently changed (diff against git history). Confirm the falsified registry has not
+shrunk. Confirm long-only statuses are still tagged regime-conditional, not permanent.
+If any integrity issue is found, do NOT fix silently — report it to the operator with
+the diff. This guards against research-loop drift from the constitution.

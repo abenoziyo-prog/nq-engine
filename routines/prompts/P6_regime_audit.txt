@@ -1,0 +1,10 @@
+1. Classify the trailing month's regime (trend/chop/correction) from daily structure
+   and realized vol. Tag it in the vault's regime log.
+2. For each strategy, report performance conditional on regime. Flag any strategy
+   whose deploy-conditions no longer match the current regime (e.g. a long-only
+   trend model in a down month) and recommend activate/deactivate to the operator.
+3. Re-run the full vault status board. Promote CANDIDATE -> FROZEN_AWAITING_OOS only
+   if it has cleared 2+ weeks of shadow logging. Never promote to live capital.
+4. Produce a monthly report: equity-curve summary per active strategy, the regime call,
+   the deploy recommendations, and the current 'rack' of ready-to-deploy models.
+Notify with the report. This is a recommendation to the operator, not an action.

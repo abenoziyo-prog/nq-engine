@@ -1,0 +1,29 @@
+# SHOCK_v1 detection parameters — a priori, version-controlled.
+# Changes ONLY via research loop promotion. Never hand-edit live.
+version: 1.0.0
+detection:
+  window_s: 180
+  k_sigma: 4.0
+  k_sigma_fallback: 3.5      # pre-registered, one step, if <50 events/direction
+  sigma_halflife_min: 30
+  sigma_floor_frac: 0.25
+  vol_multiple: 3.0
+  cooldown_min: 30
+  min_abs_move_pct: 0.35
+arming:
+  t_arm_min: 20
+entry_schemes: [E1_IMMEDIATE, E2_PULLBACK, E3_EXTREME_BREAK, E4_HYBRID]
+pullback:
+  zone_pct: [0.25, 0.40]
+  valid_min: 15
+extreme_break:
+  hold_min: 3
+  offset_ticks: 2
+  valid_min: 20
+stop:
+  impulse_frac: 0.45
+  max_retrace_invalidation: 0.50
+exit:
+  trail_swing_tf_min: 15
+  scratch_after_min: 60
+  flat_at_session_boundary: true

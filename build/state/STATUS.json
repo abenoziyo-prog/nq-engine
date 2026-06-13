@@ -1,0 +1,255 @@
+{
+  "updated": "2026-06-13T02:31:35.562758",
+  "current_task": null,
+  "tasks": {
+    "T01": {
+      "name": "backtest-harness",
+      "phase": "P0",
+      "deps": [],
+      "status": "DONE",
+      "acceptance": "PASS: harness reproduces V4 base n=21 +4935 PF5.66",
+      "commit": "(initial build)",
+      "notes": ""
+    },
+    "T02": {
+      "name": "engine-regression-suite",
+      "phase": "P0",
+      "deps": [
+        "T01"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T03": {
+      "name": "data-store",
+      "phase": "P0",
+      "deps": [],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T04": {
+      "name": "risk-manager-tests",
+      "phase": "P1",
+      "deps": [],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T05": {
+      "name": "walkforward-framework",
+      "phase": "P1",
+      "deps": [
+        "T01"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T06": {
+      "name": "factorial-runner",
+      "phase": "P1",
+      "deps": [
+        "T01"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T07": {
+      "name": "drift-control",
+      "phase": "P1",
+      "deps": [
+        "T01"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T08": {
+      "name": "v4-short-impl",
+      "phase": "P2",
+      "deps": [
+        "T02"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T09": {
+      "name": "lvl-imb-engine",
+      "phase": "P2",
+      "deps": [
+        "T02"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T10": {
+      "name": "daymap-feature",
+      "phase": "P2",
+      "deps": [
+        "T03"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T11": {
+      "name": "vault-promotion-logic",
+      "phase": "P2",
+      "deps": [
+        "T05",
+        "T07"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T12": {
+      "name": "tradovate-client",
+      "phase": "P3",
+      "deps": [],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T13": {
+      "name": "oso-bracket-builder",
+      "phase": "P3",
+      "deps": [
+        "T12"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T14": {
+      "name": "bridge-receiver",
+      "phase": "P3",
+      "deps": [
+        "T04",
+        "T13"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T15": {
+      "name": "reconciliation-loop",
+      "phase": "P3",
+      "deps": [
+        "T12"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T16": {
+      "name": "crash-recovery",
+      "phase": "P3",
+      "deps": [
+        "T15"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T17": {
+      "name": "live-feed-adapter",
+      "phase": "P4",
+      "deps": [
+        "T03",
+        "T12"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T18": {
+      "name": "paper-integration-test",
+      "phase": "P4",
+      "deps": [
+        "T14",
+        "T17"
+      ],
+      "status": "BLOCKED_ON_KEYS",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T19": {
+      "name": "slippage-audit-harness",
+      "phase": "P4",
+      "deps": [
+        "T18"
+      ],
+      "status": "BLOCKED_ON_KEYS",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T20": {
+      "name": "deploy-doc",
+      "phase": "P4",
+      "deps": [
+        "T01",
+        "T14",
+        "T17"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T21": {
+      "name": "kill-switch",
+      "phase": "P5",
+      "deps": [
+        "T14"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T22": {
+      "name": "monitoring-alerts",
+      "phase": "P5",
+      "deps": [
+        "T14"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    },
+    "T23": {
+      "name": "cost-guard",
+      "phase": "P5",
+      "deps": [],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": ""
+    }
+  }
+}
