@@ -687,6 +687,40 @@
         "Use the 09:30-09:50 open window in OB_NYOPEN_BULL_1M; the 09:50 macro window is falsified as a timing filter."
       ],
       "next": []
+    },
+    {
+      "id": "EMA_PROX_V4_15M",
+      "name": "V4 proximity + acceleration on 15m (frozen base), 12mo databento",
+      "family": "EMA_PROX",
+      "status": "CANDIDATE",
+      "dataset": "src/data/MNQ_15m_12mo_databento.csv (23513 15m bars resampled from databento 1m, 2025-06-15..2026-06-14)",
+      "direction": "long_only",
+      "provenance": "In-repo verification (priority-3, 2026-06-15) of the operator-external 'V4_long_15m OOS PF 3.67 / DD -$1,080' claim. src/engine/v4.py through the harness; runner research/task_p3_v4_15m.py. Engine NOT tuned.",
+      "rules": {
+        "config": "frozen base: 9x50, k=0.02*ATR(14), accel ON, long-only, NO stop, NO daily-align, friction 1.0pt (same config as the 5m frozen V4, applied to 15m bars)",
+        "note": "k=0.02*ATR base matches the operator number; k=0.75 (PF 3.75 but DD -$1,959) and k=1.5 (PF 2.53) do NOT fit the -$1,080 DD"
+      },
+      "verification": {
+        "operator_claim": {"pf": 3.67, "max_dd_usd": -1080},
+        "in_repo_full_12mo": {"n": 19, "eff_days": 19, "win_pct": 47.4, "total_pts": 4188.2, "pf": 3.57, "max_dd_pts": -494.3, "max_dd_usd": -989, "sharpe_daily_ann": 5.99, "top3_concentration_pct": 92},
+        "reconciliation": "RECONCILED within tolerance: in-repo PF 3.57 vs claimed 3.67 (delta 0.10); maxDD -$989 vs -$1,080 (delta ~$90). Small deltas attributable to resample/convention. Operator claim CONFIRMED.",
+        "in_repo_blind_oos_pre_mar2026": {"n": 17, "pf": 1.91, "total_pts": 1490.1, "max_dd_pts": -494.3, "note": "the genuinely-unseen sub-window is only PF 1.91 -- the headline 3.57 is dominated by the in-sample Mar-Jun up-tape window, like the 5m case"},
+        "drift_control": {"spec": "random NY_AM long H=120 15m-bars, n=200 + 200-seed MC", "pf": 1.33, "mfe_mae_mc_pooled": 0.931, "note": "PF 3.57 beats drift 1.33"}
+      },
+      "results": {
+        "pf": 3.57, "total_pts": 4188.2, "max_dd_pts": -494.3, "max_dd_usd": -989, "n": 19,
+        "prop_fit": "maxDD -$989 fits the $2K trailing prop limit (unlike V4 5m -$2,582)"
+      },
+      "caveats": [
+        "VERY LOW n (19 trades, eff_days 19) and EXTREME concentration: top-3 trades = 92% of profit (constitution rule-7 red flag). PF 3.57 is not a robust edge.",
+        "Headline is up-tape-window-driven: the blind pre-Mar-2026 sub-window is only PF 1.91. Same regime-conditional pattern as V4 5m.",
+        "Beats drift (3.57 vs 1.33) and clears PF>1.5, and DD fits the prop limit -> kept CANDIDATE, but n is well below 'adequate'; needs more out-of-sample months before any promotion.",
+        "Which exact k the operator used is inferred (base k=0.02*ATR matches best on both PF and DD); not independently confirmed."
+      ],
+      "next": [
+        "walk-forward OOS across more windows before trusting PF 3.57 (n far too small)",
+        "compare prop-DD fit out-of-sample"
+      ]
     }
   ],
   "falsified_registry_rules": [
