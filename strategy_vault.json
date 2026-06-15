@@ -546,27 +546,36 @@
     },
     {
       "id": "OB_NYOPEN_BULL_1M",
-      "name": "NY-open bullish order-block reversion, 1m",
+      "name": "NY-open bullish order-block reversion, 1m (single-entry)",
       "family": "LVL_IMB",
-      "status": "CANDIDATE",
+      "status": "FALSIFIED",
       "dataset": "src/data/MNQ_1m_12mo_databento.csv (352695 1m bars w/ volume, 2025-06-15..2026-06-14, exchange-direct Databento, front-month stitched U5/Z5/H6/M6)",
       "direction": "long_only",
-      "provenance": "Result produced OUTSIDE this session (operator external research, 2026-06-15). IN-REPO VERIFICATION (T24, 2026-06-15) FAILED to reproduce — see in_repo_verification: in-repo n=164/PF0.94/-150pt is a net LOSER vs external n=798/PF2.26/+7984. Numbers are UNCONFIRMED in-repo; per operator directive the engine was NOT tuned to force a match. Do not rely on the external numbers until the setup definition is reconciled.",
+      "finding": "Single-entry NY-open bull OB has NO edge as specified. In-repo on 12mo databento it is a net LOSER (n=164, PF 0.94, -150.5pt, 7/13 green). The external winning number (n=798, PF 2.26, +$15,968) was a RE-ENTRY artifact of the external pipeline (multiple re-entries per zone), NOT reproducible under one-entry-per-zone. The re-entry variant is spec'd separately as OB_NYOPEN_REENTRY_1M (SPEC_ONLY) for honest testing.",
+      "provenance": "Verified in-repo (T24, 2026-06-15) via src/engine/ob_nyopen.py through the harness; operator confirmed the external 798/2.26 was a multiple-re-entry artifact the single-entry vault spec did not capture. Engine NOT tuned. In-repo numbers below are the verified record.",
       "rules": {
-        "setup": "bullish order-block reversion at the NY open",
-        "window": "09:30-09:50 ET open window (best). The 09:50 macro window is FALSIFIED as weakest (see OB_NYOPEN_MACRO_WINDOW)",
-        "volume_filter": "NONE -- confirming the OB displacement leg by volume REDUCED edge (see OB_NYOPEN_VOLUME_CONFIRM); do not add a volume filter",
+        "setup": "bullish order-block reversion at the NY open -- ONE entry per zone (first same-day tap only)",
+        "displacement": "single bar, body >= 1.5*ATR(14), breaks the prior 10-bar high",
+        "window": "09:30-11:00 ET formation (per T24 spec)",
+        "entry": "long at the zone top edge on the first same-day tap",
+        "exit": "stop 1pt below zone low; target = entry + 2*max(zone_height,3); 120-min max hold",
+        "volume_filter": "NONE (see OB_NYOPEN_VOLUME_CONFIRM)",
         "timeframe": "1m"
       },
       "results": {
-        "n": 798,
-        "pf": 2.26,
-        "total_usd": 15968,
-        "max_dd_usd": -323,
-        "green_months": "13/13",
-        "drift_control": "beats its structural drift control (2.26 vs 0.90)",
-        "prop_fit": "max DD -$323 fits the $2K trailing prop limit -- KEY property vs V4 5m OOS DD -$2,582 which EXCEEDS it",
-        "pnl_units": "USD on MNQ ($2/pt) prop account -- note: differs from the vault-wide convention (NQ points, $20/pt); $-figures here are MNQ prop dollars"
+        "n": 164,
+        "win_pct": 38.4,
+        "total_pts": -150.5,
+        "pf": 0.94,
+        "max_dd_pts": -499.2,
+        "sharpe_daily_ann": -0.46,
+        "eff_days": 131,
+        "green_months": "7/13",
+        "avg_win": 39.1,
+        "avg_loss": -25.9,
+        "verdict": "net LOSER -- no edge as specified",
+        "pnl_units": "points, friction 1pt RT (engine run on MNQ 1m data)",
+        "external_artifact_rejected": {"n": 798, "pf": 2.26, "total_usd": 15968, "max_dd_usd": -323, "green_months": "13/13", "note": "re-entry artifact; NOT reproducible under single-entry; do NOT use -- see OB_NYOPEN_REENTRY_1M"}
       },
       "in_repo_verification": {
         "task": "T24",
@@ -582,16 +591,45 @@
         "action_needed": "Operator to supply the exact OB setup definition (displacement metric, window, tap/re-entry and position-concurrency rules) so the engine can be reconciled. Status left CANDIDATE but numbers are UNCONFIRMED; do not promote."
       },
       "caveats": [
-        "IN-REPO VERIFICATION FAILED (T24) -- the external n=798/PF2.26 numbers are NOT reproducible from this description; see in_repo_verification.",
-        "Operator-reported external result; UNVERIFIED in-session. Pending in-repo regression reproduction (T24) and walk-forward OOS (T25).",
-        "n=798 raw trades; effective day-level n and top-trade profit concentration were not provided externally -- compute on reproduction (constitution rule 7).",
-        "13/13 green months spans a single up-tape year; long-only and regime-conditional, not a permanent truth.",
-        "1m fill/slippage realism must be validated before any capital."
+        "Single-entry version FALSIFIED on 12mo databento (T24); do not deploy and do not re-propose without a structural change.",
+        "Negative result is first-class -- it prevents rediscovering this dead config; the external 798/2.26 was a re-entry artifact, not an edge.",
+        "This falsification is of the SINGLE-ENTRY rule only; it says nothing about the separate re-entry hypothesis OB_NYOPEN_REENTRY_1M."
       ],
       "next": [
-        "T24: implement src/engine/ob_nyopen.py + regression test reproducing n=798 / PF 2.26",
-        "T25: walk-forward OOS validation",
-        "report effective n and concentration on reproduction"
+        "test the re-entry variant (OB_NYOPEN_REENTRY_1M) honestly per its spec",
+        "do not re-propose single-entry NY-open OB without a structural change"
+      ]
+    },
+    {
+      "id": "OB_NYOPEN_REENTRY_1M",
+      "name": "NY-open bullish OB reversion WITH re-entry, 1m (hypothesis)",
+      "family": "LVL_IMB",
+      "status": "SPEC_ONLY",
+      "dataset": "src/data/MNQ_1m_12mo_databento.csv (target dataset; NOT yet backtested)",
+      "direction": "long_only",
+      "provenance": "Spec'd 2026-06-15 to capture precisely the re-entry behavior that produced the external n=798/PF2.26 number (which the single-entry OB_NYOPEN_BULL_1M could not reproduce and was therefore FALSIFIED). This entry is a RESEARCH TASK DEFINITION ONLY -- results=null, do NOT treat any number as a result.",
+      "rules": {
+        "displacement": "single bar, body >= 1.5*ATR(14), breaks the prior 10-bar high",
+        "formation_window": "09:30-11:00 ET",
+        "zone": "the last down candle before the displacement; zone = [low, high]",
+        "zone_validity": "zone stays VALID until a 1m CLOSE beyond its far edge (a 1m close below zone low invalidates it); intrabar taps/wicks do NOT invalidate",
+        "re_entry": "RE-ENTRY ALLOWED -- the key difference vs FALSIFIED OB_NYOPEN_BULL_1M: each time price exits the zone and later re-taps a STILL-VALID zone, that is a NEW long entry (a zone can produce multiple entries until invalidated)",
+        "entry": "long at the zone top edge on each (re)tap",
+        "exit": "stop 1pt below zone low; target = entry + 2*max(zone_height,3); 120-min max hold per entry",
+        "concurrency": "SINGLE position at a time (no concurrency). The current harness is single-position: if a re-tap fires while a position is open, SKIP it (do not queue) and log the count of skipped overlapping taps. Revisit if/when a multi-position harness exists.",
+        "friction": "1.0 pt round-trip",
+        "timeframe": "1m"
+      },
+      "results": null,
+      "caveats": [
+        "UNTESTED hypothesis -- do NOT promote or cite numbers; results are null by design.",
+        "Re-entry strategies overcount correlated outcomes: on backtest report effective day-level n, per-zone entry distribution, and top-3 profit concentration (constitution rule 7).",
+        "Single-position SKIP rule will under-count vs a true concurrent re-entry book; the external 798 likely used concurrency -- document the skipped-overlap gap when tested.",
+        "Mandatory drift-control benchmark required before any status change."
+      ],
+      "next": [
+        "implement the re-entry variant and backtest on MNQ_1m_12mo_databento.csv with the drift control",
+        "report skipped-overlap count + effective n; check whether re-entry explains the external 798/2.26 or whether that too was inflated"
       ]
     },
     {
