@@ -479,6 +479,36 @@
         "acquire a full multi-month, independent-window 1m NQ export before any further 1m test",
         "if pursued, retune k to the 1m ATR scale and re-run with the drift control"
       ]
+    },
+    {
+      "id": "EMA_PROX_V4_1M_12MO",
+      "name": "V4 on native 1-minute timeframe, 12mo databento (exploratory)",
+      "family": "EMA_PROX",
+      "status": "SPEC_ONLY",
+      "dataset": "src/data/MNQ_1m_12mo_databento.csv — 352695 1m bars, 2025-06-15..2026-06-14, exchange-direct, volume-verified",
+      "direction": "long_only",
+      "rules": {
+        "config": "frozen V4 base on 1m closes: 9x50, accel ON, long-only, NO stop, NO daily-align, friction 1.0pt",
+        "k_derivation": "k=0.02*ATR(14) retained — already volatility-relative so it transfers without fitting (1m ATR median 7.48 -> 0.15pt band vs 5m 17.66 -> 0.35pt). Sensitivity scan k_mult 0.02->0.20 shows PF degrading monotonically (0.02->1.29, 0.04->0.88, 0.06->0.78, 0.10->0.71); matching the 5m ABSOLUTE band (k_mult~0.047) is already PF<1. No k makes 1m profitable — selection by structure/frequency, not P&L."
+      },
+      "results": {
+        "full_12mo": {"n": 327, "eff_days": 207, "win_pct": 46.2, "total_pts": 3596.2, "pf": 1.29, "max_dd_pts": -1909.2, "sharpe_daily_ann": 1.30, "avg_dur_h": 9.6, "max_dur_h": 81.7, "top3_concentration_pct": 47},
+        "oos_unseen_pre_mar2026": {"n": 234, "eff_days": 147, "win_pct": 44.0, "total_pts": 619.5, "pf": 1.07, "sharpe_daily_ann": 0.38, "top3_concentration_pct": 209, "note": "barely above breakeven; the other 231 trades are net-negative"},
+        "is_overlap_mar_jun2026": {"n": 93, "eff_days": 60, "win_pct": 51.6, "total_pts": 2976.8, "pf": 1.74, "sharpe_daily_ann": 2.83},
+        "drift_control": {"spec": "mandatory benchmark: random NY_AM long entries, H=294 1m-bars (V4 median hold), n=200 seeded + 200-seed MC", "pf": 0.90, "win_pct": 56.0, "mfe_mae": 0.781, "mfe_mae_mc_pooled": 0.880},
+        "vs_benchmark": "1m full PF 1.29 marginally beats drift 0.90; OOS-only PF 1.07 is at the drift baseline"
+      },
+      "caveats": [
+        "EXPLORATORY new timeframe — do NOT promote.",
+        "Edge does NOT survive at 1m: full PF 1.29, blind-OOS PF 1.07 (vs 5m in-sample 5.66, 5m blind-OOS ~1.0). Higher frequency adds noise; even the in-sample window only reaches PF 1.74.",
+        "Supersedes the earlier 2-day stub EMA_PROX_V4_1M_TEST (n=1 on a 2-day volumeless TradingView file); this is the proper 12-month, volume-verified, exchange-direct test.",
+        "Extreme profit concentration OOS (top-3 trades = 209% of net profit).",
+        "1m holds average ~9.6h — still multi-hour swing behavior, not scalping; the timeframe change did not convert V4 into a high-frequency edge."
+      ],
+      "next": [
+        "do not pursue 1m for V4 as a standalone edge; 5m remains the V4 timeframe",
+        "retain 1m data for SHOCK_v1 and microstructure work"
+      ]
     }
   ],
   "falsified_registry_rules": [
