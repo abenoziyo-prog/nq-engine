@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-15T12:00:00Z",
+  "updated": "2026-06-15T18:00:00Z",
   "current_task": null,
   "tasks": {
     "T01": {
@@ -250,6 +250,40 @@
       "acceptance": null,
       "commit": null,
       "notes": ""
+    },
+    "T24": {
+      "name": "ob-nyopen-engine",
+      "phase": "P6",
+      "deps": [
+        "T01"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": "Reproduce operator-reported OB_NYOPEN_BULL_1M (n=798, PF 2.26, DD -$323, 13/13 green) in-repo via src/engine/ob_nyopen.py + regression test. Spec: build/tasks/specs_P6_research.md. Result currently unverified in-session."
+    },
+    "T25": {
+      "name": "ob-walkforward-oos",
+      "phase": "P6",
+      "deps": [
+        "T24",
+        "T05"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": "Walk-forward OOS of the OB strategy incl per-window $2K-prop-DD check. Gates CANDIDATE -> FROZEN. Spec: build/tasks/specs_P6_research.md."
+    },
+    "T26": {
+      "name": "shock-v1-build",
+      "phase": "P6",
+      "deps": [
+        "T01"
+      ],
+      "status": "PENDING",
+      "acceptance": null,
+      "commit": null,
+      "notes": "Productionize SHOCK_v1 (detector exists, data unblocked). Reproduce backtest_v1 (UP E3 PF~3.6, DOWN dead). Does NOT promote (n<50 gate, no gamma feed). Spec: build/tasks/specs_P6_research.md."
     }
   }
 }

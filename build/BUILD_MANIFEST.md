@@ -71,6 +71,11 @@ P5 hardening
 - T22 monitoring-alerts       [T14]          heartbeat, error, drift notifications
 - T23 cost-guard              [—]            API spend cap on the research loop
 
+P6 research-unblocked (1m databento sync 2026-06-15; see build/tasks/specs_P6_research.md)
+- T24 ob-nyopen-engine        [T01]          OB_NYOPEN_BULL_1M production engine + regression (reproduce n=798/PF2.26)
+- T25 ob-walkforward-oos      [T24,T05]      walk-forward OOS of OB incl $2K-prop-DD check
+- T26 shock-v1-build          [T01]          productionize SHOCK_v1 (UP E3 edge); does NOT promote (n<50 gate)
+
 ## STATUS
 Tracked in build/state/STATUS.json. Initialized all PENDING except where deps allow start.
 ```

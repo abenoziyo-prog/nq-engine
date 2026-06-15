@@ -1,11 +1,14 @@
 # Strategy Vault — NQ Autonomous Trading System
-**Updated:** 2026-06-15 · All results net of 1.0 pt RT friction · 1 NQ contract ($20/pt) · Long-only unless noted
+**Updated:** 2026-06-15 · All results net of 1.0 pt RT friction · Long-only unless noted
+**$ convention:** legacy EMA/zone rows are NQ points ($20/pt); the new databento OB + V4-OOS rows report **MNQ prop dollars ($2/pt)** for $2K-limit fit. Points are instrument-agnostic; watch the multiplier when comparing $ figures.
 
 ## Status board
 
 | ID | Strategy | TF | Status | n | Win% | Total pts | PF | MaxDD | Sharpe |
 |---|---|---|---|---|---|---|---|---|---|
-| EMA_PROX_V4_5M | Proximity + acceleration | 5m | **FROZEN — ⚠ OOS FAILED** (IS shown; OOS PF≈1.0) | 22 | 55% | +5,461 | 16.0 IS / **2.4** 12mo / **0.99** blind | −212 IS / −1,245 OOS | 5.0 |
+| OB_NYOPEN_BULL_1M | NY-open bullish OB reversion ★ | 1m | **CANDIDATE** (operator OOS; fits prop) | 798 | — | +$15,968 | **2.26** (drift 0.90) | **−$323 (fits $2K ✓)** | — |
+| EMA_PROX_V4_5M | Proximity + acceleration | 5m | **FROZEN — ⚠ OOS FAILED** | 22 | 55% | +5,461 IS | 16.0 IS / **2.39** OOS / 0.99 blind-window | −212 IS / **−$2,582 OOS (>$2K ✗)** | 5.0 |
+| EMA_PROX_V4_15M | Proximity + accel (frozen 15m) | 15m | OOS-validated | — | — | — | **3.67** OOS | **−$1,080 (fits $2K ✓)** | — |
 | LVL_IMB_LONDON_5M | London zones, NY tap, multi-touch | 5m | **FROZEN → OOS** (not yet OOS-tested; engine not built) | 151 | 35% | +4,121 | 3.2 (4.4 w/ EMA gate) | −290 | — |
 | EMA_PROX_V4_15M_K075 | Prox + accel, slow | 15m | CANDIDATE | 21 | 48% | +6,265 | 4.6 | −980 | 2.0 |
 | EMA_PROX_V0B_5M | Proximity base k=0.75 | 5m | CANDIDATE | 40 | 45% | +4,380 | 3.1 | −1,248 | 3.8 |
@@ -20,9 +23,10 @@
 | EMA_CROSS_CONFIRMED | Crossover at confirmed cross | 5m | **FALSIFIED** | 511 | 27% | −2,307 | 0.89 | −3,216 | — |
 
 ## ⚠ 12-month databento OOS update (2026-06-15)
-Exchange-direct 1m MNQ (352,695 bars, Jun 2025–Jun 2026, with volume) resampled to 5m/15m gave the **first true out-of-sample** test (vault V4 was tuned only on Mar–Jun 2026).
-- **V4_5M did NOT survive blind OOS.** Full 12mo PF 2.38 (n=63), but the IS-overlap window reproduces the headline (Mar–Jun 2026 PF 6.37) while the genuinely-unseen **Aug 2025–Feb 2026 window is PF 0.99 / −17pt — break-even**. OOS/IS PF ratio ≈ **0.18–0.20** (≪ 0.4 DEGRADED). **Feb 2026 correction: 3 trades, all losers, −729pt.** The tuned PF 16 was an up-tape artifact, reproducible only on that window. Recommend demotion (regime-gate, not unconditional long). Recorded as `oos_validation` on EMA_PROX_V4_5M.
-- **V4 at 1m does not work** (PF 1.29 full / 1.07 OOS; no k rescues it) — `EMA_PROX_V4_1M_12MO`, SPEC_ONLY.
+Exchange-direct 1m MNQ (352,695 bars, Jun 2025–Jun 2026, with volume, front-month U5/Z5/H6/M6) is now the **primary dataset** and gave the **first true out-of-sample** test (vault V4 was tuned only on Mar–Jun 2026). The deployment lens is the **$2K trailing prop limit** — PF means little if max DD blows the account.
+- **★ NEW — OB_NYOPEN_BULL_1M (CANDIDATE, operator external research):** NY-open bullish order-block reversion on 1m. **n=798, PF 2.26, +$15,968, max DD only −$323, 13/13 green months**, beats its structural drift control (2.26 vs 0.90). **Decisive property: the −$323 DD fits the $2K prop limit** — unlike V4 5m. Best window 09:30–09:50. Two ablations FALSIFIED: volume-confirming the displacement leg reduced edge (`OB_NYOPEN_VOLUME_CONFIRM`); the 09:50 macro window was weakest, not strongest (`OB_NYOPEN_MACRO_WINDOW`). *Operator-reported, not yet reproduced in-repo — regression test = task T24.*
+- **V4 OOS honest numbers (validated):** **V4_long_5m OOS PF = 2.39** (not the in-sample 5.66/16.0), and its **max DD −$2,582 EXCEEDS the $2K prop limit** → not prop-deployable as-is. **V4_long_15m OOS PF 3.67 with only −$1,080 DD → fits the limit** and is the prop-viable EMA_PROX timeframe. Within the 5m OOS, the genuinely-unseen Aug 2025–Feb 2026 sub-window was PF 0.99 (break-even) and Feb 2026 correction was all losers — the 5m edge is up-tape regime-conditional. Recorded as `oos_validation` on EMA_PROX_V4_5M.
+- **V4 at 1m does not work** (PF 1.29 full / 1.07 blind; no k rescues it) — `EMA_PROX_V4_1M_12MO`, SPEC_ONLY.
 - **SHOCK_V1 unblocked → FINDING.** UP-shock + E3 (extreme-break) PF 3.60 (+850pt, n=33), beats E1 baseline (0.97) and random drift (0.77). DOWN-shocks have no continuation edge (all PF<1) — fade/skip in this up-tape. UP n=45 < 50-event gate → reports, not promoted; needs more events + gamma feed + slippage model + shadow mode.
 
 ## Key validated findings (cross-strategy)
@@ -34,6 +38,8 @@ Exchange-direct 1m MNQ (352,695 bars, Jun 2025–Jun 2026, with volume) resample
 6. **Right-tail exits:** trail >> fixed R everywhere tested (zone engine: 2R=+388, 3R=+590, trail=+1,099 on identical entries).
 7. **Honest OOS expectation — now confirmed on hard data:** the tuned 5m PFs (3–16) do not compress to ~2, they compress to **~1.0 (break-even)** on genuinely-unseen months. V4_5M blind OOS (Aug 2025–Feb 2026) = PF 0.99; OOS/IS ratio 0.18–0.20. Feb 2026 correction = all losers. **The EMA_PROX edge is regime-conditional (up-tape only), not a standalone long-only edge.** Deploy only with a regime gate that kills it in corrections.
 8. **Shock continuation is real on the UP side (new):** 4σ/3×-volume UP-shocks continue past their extreme — E3 entry PF 3.6 vs random 0.77. DOWN-shocks revert (no continuation) in the current up-tape. Right-tail capture, lumpy, sub-gate sample — promising hypothesis, not yet validated.
+9. **The unit of edge is the deployment decision, not PF (new, decisive):** max drawdown vs the $2K prop limit now ranks the book. OB_NYOPEN_BULL_1M (DD −$323) and V4-15m (DD −$1,080) FIT and are deployable; V4-5m (DD −$2,582) does NOT, despite higher headline PF. A lower-PF, low-DD strategy that fits the account beats a high-PF one that blows it.
+10. **Volume-confirm filters keep failing:** confirming the OB displacement leg by volume reduced edge (OB_NYOPEN_VOLUME_CONFIRM falsified) — same lesson as EMA-cross triggers. Edge is in location + timing, not indicator/volume confirmation.
 
 ## Open risks / blockers
 - **V4_5M failed blind OOS** (PF→1.0 on Aug2025–Feb2026; −729 in Feb). Do NOT deploy unconditional long-only. Needs regime gate + formal demotion via T11.

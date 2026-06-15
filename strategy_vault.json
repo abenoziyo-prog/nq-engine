@@ -543,6 +543,81 @@
         "do not pursue 1m for V4 as a standalone edge; 5m remains the V4 timeframe",
         "retain 1m data for SHOCK_v1 and microstructure work"
       ]
+    },
+    {
+      "id": "OB_NYOPEN_BULL_1M",
+      "name": "NY-open bullish order-block reversion, 1m",
+      "family": "LVL_IMB",
+      "status": "CANDIDATE",
+      "dataset": "src/data/MNQ_1m_12mo_databento.csv (352695 1m bars w/ volume, 2025-06-15..2026-06-14, exchange-direct Databento, front-month stitched U5/Z5/H6/M6)",
+      "direction": "long_only",
+      "provenance": "Result produced OUTSIDE this session (operator external research, 2026-06-15) and recorded here per sync directive. NOT reproduced by the build agent in-session and NOT yet locked by an in-repo regression test (see task T24). Numbers are as reported by the operator.",
+      "rules": {
+        "setup": "bullish order-block reversion at the NY open",
+        "window": "09:30-09:50 ET open window (best). The 09:50 macro window is FALSIFIED as weakest (see OB_NYOPEN_MACRO_WINDOW)",
+        "volume_filter": "NONE -- confirming the OB displacement leg by volume REDUCED edge (see OB_NYOPEN_VOLUME_CONFIRM); do not add a volume filter",
+        "timeframe": "1m"
+      },
+      "results": {
+        "n": 798,
+        "pf": 2.26,
+        "total_usd": 15968,
+        "max_dd_usd": -323,
+        "green_months": "13/13",
+        "drift_control": "beats its structural drift control (2.26 vs 0.90)",
+        "prop_fit": "max DD -$323 fits the $2K trailing prop limit -- KEY property vs V4 5m OOS DD -$2,582 which EXCEEDS it",
+        "pnl_units": "USD on MNQ ($2/pt) prop account -- note: differs from the vault-wide convention (NQ points, $20/pt); $-figures here are MNQ prop dollars"
+      },
+      "caveats": [
+        "Operator-reported external result; UNVERIFIED in-session. Pending in-repo regression reproduction (T24) and walk-forward OOS (T25).",
+        "n=798 raw trades; effective day-level n and top-trade profit concentration were not provided externally -- compute on reproduction (constitution rule 7).",
+        "13/13 green months spans a single up-tape year; long-only and regime-conditional, not a permanent truth.",
+        "1m fill/slippage realism must be validated before any capital."
+      ],
+      "next": [
+        "T24: implement src/engine/ob_nyopen.py + regression test reproducing n=798 / PF 2.26",
+        "T25: walk-forward OOS validation",
+        "report effective n and concentration on reproduction"
+      ]
+    },
+    {
+      "id": "OB_NYOPEN_VOLUME_CONFIRM",
+      "name": "OB NY-open + volume confirmation of the displacement leg (ablation)",
+      "family": "LVL_IMB",
+      "status": "FALSIFIED",
+      "dataset": "src/data/MNQ_1m_12mo_databento.csv",
+      "direction": "long_only",
+      "provenance": "Operator external research 2026-06-15; recorded per sync directive, not reproduced in-session.",
+      "rules": {
+        "variant": "OB_NYOPEN_BULL_1M with an added filter requiring volume to confirm the OB displacement leg"
+      },
+      "results": {
+        "finding": "volume-confirming the OB displacement leg REDUCED edge vs the no-filter base -> filter rejected"
+      },
+      "caveats": [
+        "Do NOT build a volume filter into any OB engine.",
+        "Consistent with the prior vault lesson that indicator/volume-confirm filters have repeatedly failed to add edge in this market."
+      ],
+      "next": []
+    },
+    {
+      "id": "OB_NYOPEN_MACRO_WINDOW",
+      "name": "OB NY-open 09:50 macro-window timing variant (ablation)",
+      "family": "LVL_IMB",
+      "status": "FALSIFIED",
+      "dataset": "src/data/MNQ_1m_12mo_databento.csv",
+      "direction": "long_only",
+      "provenance": "Operator external research 2026-06-15; recorded per sync directive, not reproduced in-session.",
+      "rules": {
+        "variant": "restrict OB NY-open entries to the 09:50 ET macro window"
+      },
+      "results": {
+        "finding": "the 09:50 macro window was the WEAKEST window, not the strongest; the 09:30-09:50 open window is best"
+      },
+      "caveats": [
+        "Use the 09:30-09:50 open window in OB_NYOPEN_BULL_1M; the 09:50 macro window is falsified as a timing filter."
+      ],
+      "next": []
     }
   ],
   "falsified_registry_rules": [
