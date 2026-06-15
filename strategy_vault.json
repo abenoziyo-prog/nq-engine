@@ -603,12 +603,13 @@
     },
     {
       "id": "OB_NYOPEN_REENTRY_1M",
-      "name": "NY-open bullish OB reversion WITH re-entry, 1m (hypothesis)",
+      "name": "NY-open bullish OB reversion WITH re-entry, 1m",
       "family": "LVL_IMB",
-      "status": "SPEC_ONLY",
-      "dataset": "src/data/MNQ_1m_12mo_databento.csv (target dataset; NOT yet backtested)",
+      "status": "FALSIFIED",
+      "dataset": "src/data/MNQ_1m_12mo_databento.csv (352695 1m bars, 2025-06-15..2026-06-14)",
       "direction": "long_only",
-      "provenance": "Spec'd 2026-06-15 to capture precisely the re-entry behavior that produced the external n=798/PF2.26 number (which the single-entry OB_NYOPEN_BULL_1M could not reproduce and was therefore FALSIFIED). This entry is a RESEARCH TASK DEFINITION ONLY -- results=null, do NOT treat any number as a result.",
+      "provenance": "Spec'd then BACKTESTED in-repo 2026-06-15 (src/engine/ob_reentry.py via the harness; runner research/task_p2_ob_reentry.py). Result is the verified record. Engine NOT tuned.",
+      "finding": "Re-entry does NOT rescue the NY-open OB reversion -- it makes it WORSE. Net LOSER PF 0.81, -1008.5pt (vs single-entry -150.5pt): each re-tap of a valid zone just adds another correlated losing trade. Does not clear PF>1.5 and is below breakeven. Also does NOT reproduce the external n=798/PF2.26 (faithful re-entry gives n=350, PF 0.81) -- so that external number remains unexplained by this definition (likely concurrency + other undocumented differences), but regardless there is no edge to capture.",
       "rules": {
         "displacement": "single bar, body >= 1.5*ATR(14), breaks the prior 10-bar high",
         "formation_window": "09:30-11:00 ET",
@@ -621,16 +622,31 @@
         "friction": "1.0 pt round-trip",
         "timeframe": "1m"
       },
-      "results": null,
+      "results": {
+        "n": 350,
+        "eff_days": 148,
+        "win_pct": 35.1,
+        "total_pts": -1008.5,
+        "pf": 0.81,
+        "max_dd_pts": -1323.8,
+        "sharpe_daily_ann": -2.11,
+        "green_months": "4/13",
+        "avg_win": 35.4,
+        "avg_loss": -23.6,
+        "avg_dur_min": 9.5,
+        "verdict": "net LOSER -- no edge",
+        "overcounting": {"distinct_zones": 188, "entries": 350, "pct_reentries": 46, "max_entries_per_zone": 7, "entries_per_zone_dist": {"1": 102, "2": 43, "3": 25, "4": 8, "5": 7, "6": 1, "7": 2}, "skipped_taps_single_position": 645, "note": "re-entry ~doubled n vs single-entry (164->350) and made P&L worse (-150->-1008); re-entries are correlated losers"},
+        "drift_control": {"spec": "mandatory: random NY_AM long H=60, n=200 + 200-seed MC", "pf": 0.77, "mfe_mae_mc_pooled": 0.882, "note": "PF 0.81 > drift 0.77 numerically, but BOTH are <1.0 (losing) -- beating a sub-1 baseline is not an edge"},
+        "pnl_units": "points, friction 1pt RT"
+      },
       "caveats": [
-        "UNTESTED hypothesis -- do NOT promote or cite numbers; results are null by design.",
-        "Re-entry strategies overcount correlated outcomes: on backtest report effective day-level n, per-zone entry distribution, and top-3 profit concentration (constitution rule 7).",
-        "Single-position SKIP rule will under-count vs a true concurrent re-entry book; the external 798 likely used concurrency -- document the skipped-overlap gap when tested.",
-        "Mandatory drift-control benchmark required before any status change."
+        "FALSIFIED on 12mo databento (net loser PF 0.81); do not deploy. Re-entry is the documented difference vs the single-entry version and it did not help.",
+        "Overcounting confirmed: 46% of the 350 trades are re-entries on 188 zones (up to 7/zone); they are correlated and net-negative -- exactly the red flag to watch.",
+        "Single-position harness skipped 645 overlapping taps; a concurrent book would take more of the same negative-expectancy trades, not fewer -- concurrency would not turn this positive.",
+        "Does not reproduce the external n=798/PF2.26; that number is not explained by faithful re-entry and is not pursued further (no edge exists)."
       ],
       "next": [
-        "implement the re-entry variant and backtest on MNQ_1m_12mo_databento.csv with the drift control",
-        "report skipped-overlap count + effective n; check whether re-entry explains the external 798/2.26 or whether that too was inflated"
+        "do not pursue NY-open OB reversion (single-entry and re-entry both falsified on 12mo data)"
       ]
     },
     {
