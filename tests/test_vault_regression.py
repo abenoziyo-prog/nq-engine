@@ -23,7 +23,8 @@ the operator, not silently reconciled):
     Sharpe is excluded from every assertion below.
 """
 import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _REPO)
 
 from collections import OrderedDict
 from zoneinfo import ZoneInfo
@@ -33,8 +34,10 @@ from src.backtest.harness import run_backtest
 from src.engine.v4 import V4Engine, V4Config, _Ema
 
 ET = ZoneInfo("America/New_York")
-DATA_5M = "data/MNQ_5m_aggregated_clean.csv"
-DATA_15M = "data/MNQ_15m_aggregated_clean.csv"
+# Committed/tracked bar store lives in src/data/ (the untracked top-level data/ is
+# not guaranteed on a fresh checkout). Repo-root-relative so CWD doesn't matter.
+DATA_5M = os.path.join(_REPO, "src", "data", "MNQ_5m_aggregated_clean.csv")
+DATA_15M = os.path.join(_REPO, "src", "data", "MNQ_15m_aggregated_clean.csv")
 NO_STOP = 1e9          # stop_atr large enough that the catastrophe stop never fires
 
 # tolerances (a regression guard pins tightly; these absorb only float rounding)

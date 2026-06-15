@@ -19,8 +19,8 @@
       ],
       "status": "DONE",
       "acceptance": "PASS: tests/test_vault_regression.py 5 cases green. Locks harness reproduction of EMA_PROX_V4_5M base (n=21/+4935/PF5.66), daily-align (+8114/PF6.96, in vault 5.7->8.1 band), stop-4ATR (n=25/+2828/PF3.88), and EMA_PROX_V0B_5M EXACT vault match (n=40/45%/+4380/PF3.11/maxDD-1248). 15m V4 configs reported pending (not failed). Each assertion names vault id + tolerance.",
-      "commit": "d70ae50",
-      "notes": "INTEGRITY FLAGS (operator): (1) V4_5M results-block n=22/total5461/PF16.01/maxDD-212 is STALE vs T01 re-baseline (n=21) and not reproducible by current harness — locked harness output instead, did NOT edit vault. (2) Sharpe convention differs (V0B vault 3.81 vs harness 5.87) — Sharpe excluded from assertions. (3) 15m CSV is actually PRESENT in repo (data/MNQ_15m_aggregated_clean.csv); 15m baselines just not yet calibrated."
+      "commit": "1433de5",
+      "notes": "Tests point at the COMMITTED src/data/*.csv (repo-root-relative, CWD-independent); the top-level data/ dir is untracked so the original path would have failed on a fresh clone — corrected per operator. INTEGRITY FLAGS (operator): (1) V4_5M results-block n=22/total5461/PF16.01/maxDD-212 is STALE vs T01 re-baseline (n=21) and not reproducible by current harness — locked harness output instead, did NOT edit vault. (2) Sharpe convention differs (V0B vault 3.81 vs harness 5.87) — Sharpe excluded from assertions. (3) 15m configs reported pending (baselines not yet calibrated); src/data/MNQ_15m CSV is present. NOTE: src/backtest/drift_control.py DEFAULT_DATA still points at untracked data/ (T07 scope, left untouched)."
     },
     "T03": {
       "name": "data-store",
