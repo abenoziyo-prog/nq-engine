@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-12T00:00:00Z",
+  "updated": "2026-06-15T00:00:00Z",
   "current_task": null,
   "tasks": {
     "T01": {
@@ -68,10 +68,10 @@
       "deps": [
         "T01"
       ],
-      "status": "PENDING",
-      "acceptance": null,
-      "commit": null,
-      "notes": ""
+      "status": "DONE",
+      "acceptance": "PASS: src/backtest/drift_control.py reproduces the ~0.93 NY_AM-long MFE/MAE drift benchmark (single-seed 0.929 @ H=6 n=500; Monte-Carlo pooled 0.928 / mean 0.934 over 200 seeds). Deterministic (local seeded RNG) + MC multi-seed mode; reuses harness Stats/_stats. tests/test_drift.py 4 cases green.",
+      "commit": "1d7bf81",
+      "notes": "Buy-and-hold NOT implemented (retired). H=6 (30min) locked as the calibrated NY_AM-long default."
     },
     "T08": {
       "name": "v4-short-impl",
