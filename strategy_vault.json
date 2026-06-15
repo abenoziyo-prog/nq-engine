@@ -352,7 +352,8 @@
       "results": null,
       "backtest_v1": {
         "run_on": "2026-06-15",
-        "engine": "src/detector/shock.py (a-priori detection) + research/task_c_shock.py (bake-off + management sec 5-6)",
+        "engine": "src/detector/shock.py (a-priori detection) + src/engine/shock_v1.py (productionized bake-off + impulse-scaled stops + trail/duration/scratch exits, sec 4-6); runner research/task_p1_shock.py",
+        "harness_note": "src/backtest/harness.py is OHLC-only (no volume) and long-only single-position; it cannot express SHOCK's volume trigger, its DOWN shorts, or the 4-scheme parallel bake-off. The engine is therefore driven by its own event-driven loop over volume-carrying Bars (identical logic a live feed would use). The harness is used only for the mandatory drift control.",
         "pre_registration": "detected at k=4.0 and counted BEFORE any outcome computed: UP=31, DOWN=32. Both <50/direction -> pre-registered one-step fallback to k=3.5 (spec sec 8.1): UP=45, DOWN=53. No further threshold changes.",
         "detection_threshold_final": "k=3.5 (W=180s, m=3.0x vol, A=0.35%, cooldown 30m, sigma EWMA hl=30m, floor 0.25x median|1m logret|)",
         "event_counts": {"UP": 45, "DOWN": 53},
@@ -360,7 +361,7 @@
         "bakeoff_UP": {
           "E1_immediate": {"n": 45, "win_pct": 42.2, "total_pts": -26.0, "pf": 0.97},
           "E2_pullback": {"n": 11, "win_pct": 18.2, "total_pts": -42.0, "pf": 0.74, "note": "few fills; misses no-pullback runners by design"},
-          "E3_extreme_break": {"n": 33, "win_pct": 48.5, "total_pts": 849.5, "pf": 3.60, "avgW": 73.5, "maxW": 310.5, "maxL": -67.2, "note": "STANDOUT — the edge is in continuation past the impulse extreme"},
+          "E3_extreme_break": {"n": 33, "eff_days": 28, "win_pct": 48.5, "total_pts": 849.5, "pf": 3.60, "avgW": 73.5, "maxW": 310.5, "maxL": -67.2, "top3_concentration_pct": 68, "note": "STANDOUT — edge in continuation past the impulse extreme; BUT top-3 trades = 68% of profit (rule-7 concentration flag)"},
           "E4_hybrid": {"n": 36, "win_pct": 44.4, "total_pts": 403.7, "pf": 2.74}
         },
         "bakeoff_DOWN": {
@@ -368,10 +369,10 @@
           "E2_pullback": {"n": 13, "win_pct": 7.7, "total_pts": -227.1, "pf": 0.07},
           "E3_extreme_break": {"n": 38, "win_pct": 39.5, "total_pts": -82.9, "pf": 0.86},
           "E4_hybrid": {"n": 45, "win_pct": 33.3, "total_pts": -155.0, "pf": 0.62},
-          "verdict": "NO DOWN-shock continuation edge in any scheme (all PF<1). In the Jun2025-Jun2026 up-tape, down-shocks revert -> DOWN is a fade/skip, not continuation (resolves spec sec 9 open question for this regime)."
+          "verdict": "DOWN-CONTINUATION FALSIFIED. 53 DOWN events (ADEQUATE n, >=50 gate) yet every scheme is PF<1 (E1 0.70, E2 0.07, E3 0.86, E4 0.62) and none beats the 0.77 drift baseline. In the Jun2025-Jun2026 up-tape down-shocks revert -> DOWN is a fade/skip, not continuation (regime-conditional; resolves spec sec 9 open question for this regime)."
         },
-        "drift_control": {"spec": "mandatory random-entry benchmark: NY_AM long, H=60min, n=200 + 200-seed MC", "pf": 0.77, "mfe_mae_mc_pooled": 0.882, "note": "UP E3 PF 3.60 decisively beats the 0.77 random baseline; DOWN schemes sit at/below it"},
-        "verdict": "PROMISING but SUB-THRESHOLD. UP-shock + E3 extreme-break shows a real right-tail edge (PF 3.60, +850pt/12mo, beats E1 baseline 0.97 and random 0.77). DOWN-shocks have no edge (fade/skip). DO NOT PROMOTE: UP n=45 < the 50-event/direction gate (spec sec 8.1); reports-only per gate. Shadow mode >=2wk + more events required before capital (sec 8.4).",
+        "drift_control": {"spec": "mandatory random-entry benchmark: NY_AM long, H=60min, n=200 + 200-seed MC", "pf": 0.77, "mfe_mae_mc_pooled": 0.882, "note": "UP E3 PF 3.60 beats the 0.77 random baseline; DOWN schemes sit at/below it"},
+        "verdict": "SPLIT. (1) UP-shock continuation = UNDER-POWERED: E3 PF 3.60 (n=33, eff_days 28, +850pt) beats drift 0.77, but UP events=45 < the pre-registered 50/direction gate -> NO verdict forced, stays FINDING (and top-3 trades=68% of profit, so even at n>=50 the concentration would bar promotion without more events). (2) DOWN-shock continuation = FALSIFIED (adequate n=53, all schemes PF<1, below drift). Overall SHOCK_V1 stays FINDING: do NOT promote; needs more UP events + gamma feed + slippage model + shadow mode (sec 8.4).",
         "caveats": [
           "Small n (UP 45 events, E3 33 fills) — high PF on small n; treat as hypothesis, not validated edge.",
           "gamma_regime UNKNOWN (no dealer-positioning feed) -> the spec's UP-in-SHORT-gamma conditioning was NOT applied; raw all-regime stats.",

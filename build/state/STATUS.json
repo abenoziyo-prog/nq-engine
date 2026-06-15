@@ -280,10 +280,10 @@
       "deps": [
         "T01"
       ],
-      "status": "PENDING",
-      "acceptance": null,
+      "status": "DONE",
+      "acceptance": "PASS: src/engine/shock_v1.py productionizes detection (src/detector/shock.py) + bake-off + impulse-scaled stops + trail/duration/scratch exits. Reproduces backtest_v1: pre-registered k=4.0->3.5 fallback, UP=45/DOWN=53; UP E3 PF 3.60 (n=33, eff_days 28, top3-conc 68%) beats drift 0.77; DOWN all PF<1. Verdict: UP UNDER-POWERED (45<50 gate) stays FINDING; DOWN-continuation FALSIFIED (n=53 adequate). Harness is OHLC-only/long-only so SHOCK driven by its own event loop (documented); drift via harness. Not promoted.",
       "commit": null,
-      "notes": "Productionize SHOCK_v1 (detector exists, data unblocked). Reproduce backtest_v1 (UP E3 PF~3.6, DOWN dead). Does NOT promote (n<50 gate, no gamma feed). Spec: build/tasks/specs_P6_research.md."
+      "notes": "SHOCK_V1 stays FINDING (UP under-powered + 68% concentration; DOWN-continuation falsified). Engine module + runner research/task_p1_shock.py committed."
     }
   }
 }
