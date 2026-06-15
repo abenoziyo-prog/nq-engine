@@ -311,8 +311,8 @@
       "id": "LVL_IMB_ASIA_5M",
       "name": "Asia zone NY tap, multi-touch, long-only",
       "family": "LVL_IMB",
-      "status": "CANDIDATE",
-      "dataset": "DS-5M",
+      "status": "FINDING",
+      "dataset": "DS-5M (in-sample) + verified in-repo on src/data/MNQ_5m_12mo_databento.csv (12mo)",
       "direction": "long_only",
       "rules": {
         "as": "LVL_IMB_LONDON_5M but zones formed in Asia; survival through Asia+London via close-through rule"
@@ -325,11 +325,23 @@
         "max_dd_pts": -271,
         "note": "1-touch subset PF 7.2 n=10; 2+ touches NEGATIVE PF 0.89"
       },
+      "oos_validation": {
+        "validated_on": "2026-06-15",
+        "engine": "src/engine/lvl_imb.py (formation_session=ASIA), same spec as London; harness; runner research/task_lvl_imb.py ASIA; 1pt friction; rising-200EMA gate ON",
+        "dataset": "src/data/MNQ_5m_12mo_databento.csv (12mo)",
+        "full_12mo": {"n": 24, "eff_days": 17, "win_pct": 54.2, "total_pts": 931.8, "pf": 6.90, "max_dd_pts": -86.8, "sharpe_daily_ann": 9.59, "top3_concentration_pct": 67},
+        "blind_earliest_6mo": {"n": 9, "eff_days": 7, "win_pct": 44.4, "total_pts": 274.5, "pf": 8.83, "max_dd_pts": -19.1, "top3_concentration_pct": 105, "note": "STRICT BLIND verdict slice. n=9 only; top-3 trades = 105% of profit (the other 6 are net-negative) -> statistically meaningless"},
+        "recent_6mo": {"n": 15, "eff_days": 10, "win_pct": 60.0, "total_pts": 657.3, "pf": 6.35, "top3_concentration_pct": 94},
+        "drift_control": {"spec": "random NY_AM long H=24 5m-bars, n=200 + 200-seed MC", "pf": 0.66, "mfe_mae_mc_pooled": 0.846},
+        "verdict": "UNDER-POWERED. Asia zones are rare: only n=9 in the strict-blind window (and n=24 over the full year). Blind PF 8.83 beats drift but is meaningless at n=9 with 105% concentration (3 trades carry it, the rest lose). Not falsified (not a loser) but cannot be promoted -> FINDING(under-powered).",
+        "status_recommendation": "FINDING (was CANDIDATE). Asia zone frequency is too low for a standalone verdict; per the vault's own next-step, POOL with the London engine for OOS rather than judging alone."
+      },
       "caveats": [
-        "touch-count finding: fresh/1-touch good, 2+ touches erode \u2014 zones valid through ~2 interactions only"
+        "touch-count finding: fresh/1-touch good, 2+ touches erode \u2014 zones valid through ~2 interactions only",
+        "In-repo 12mo: UNDER-POWERED -- only 9 strict-blind trades, 105% concentration; downgraded CANDIDATE -> FINDING."
       ],
       "next": [
-        "pool with London engine in OOS validation"
+        "pool with London engine in OOS validation (too few Asia zones to judge alone)"
       ]
     },
     {

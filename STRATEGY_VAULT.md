@@ -13,7 +13,7 @@
 | EMA_PROX_V4_15M_K075 | Prox + accel, slow | 15m | CANDIDATE | 21 | 48% | +6,265 | 4.6 | −980 | 2.0 |
 | EMA_PROX_V0B_5M | Proximity base k=0.75 | 5m | CANDIDATE | 40 | 45% | +4,380 | 3.1 | −1,248 | 3.8 |
 | EMA_PROX_V4_15M_K15 | Prox + accel | 15m | CANDIDATE | 45 | 47% | +3,184 | 2.1 | −922 | 1.9 |
-| LVL_IMB_ASIA_5M | Asia zones, multi-touch | 5m | CANDIDATE | 49 | 20% | +838 | 2.1 | −271 | — |
+| LVL_IMB_ASIA_5M | Asia zones, multi-touch | 5m | **FINDING** (under-powered: blind n=9) | 9 blind | 44% | +275 blind | 8.83 blind (n=9!) / 6.90 full | −87pt | 9.2 |
 | SHOCK_V1 | Shock continuation (UP+E3) | 1m | **FINDING** (unblocked; UP-shock edge, sub-gate) | 45 ev | 49% (E3) | +850 (UP/E3) | **3.6** (UP/E3); DOWN dead | — | — |
 | DAY_MAP_V1 | Session H/L interaction map | 15m | FINDING (context) | 223d | — | — | — | — | — |
 | EMA_PROX_V0_15M_K15 | Ablation control (no accel) | 15m | FINDING | 57 | 44% | +2,424 | 1.6 | −1,623 | 1.1 |
