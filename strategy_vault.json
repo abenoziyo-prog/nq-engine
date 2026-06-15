@@ -261,8 +261,8 @@
       "id": "LVL_IMB_LONDON_5M",
       "name": "London zone (OB+FVG) NY tap, multi-touch, long-only",
       "family": "LVL_IMB",
-      "status": "FROZEN_AWAITING_OOS",
-      "dataset": "DS-5M",
+      "status": "FINDING",
+      "dataset": "DS-5M (in-sample) + verified in-repo on src/data/MNQ_5m_12mo_databento.csv (12mo)",
       "direction": "long_only",
       "rules": {
         "zones": "OB: last down-close candle before 1.5xATR displacement breaking 10-bar swing high, formed in London. FVG: 3-bar gaps inside 2xATR/3-bar displacement legs, merged. Zone=full range",
@@ -284,6 +284,17 @@
           "pf": 4.35,
           "avg_pts": 36.2
         }
+      },
+      "oos_validation": {
+        "validated_on": "2026-06-15",
+        "engine": "src/engine/lvl_imb.py (faithful build of the OB+FVG/multi-touch/NY-tap/structural-stop/trail/rising-200EMA-gate spec) through the harness; runner research/task_lvl_imb.py; 1pt friction; rising-200EMA gate ON; no EOD flatten (hold-through-validity)",
+        "dataset": "src/data/MNQ_5m_12mo_databento.csv (70539 5m bars, 2025-06-15..2026-06-14)",
+        "full_12mo": {"n": 109, "eff_days": 68, "win_pct": 47.7, "total_pts": 1892.6, "pf": 3.22, "max_dd_pts": -120.9, "sharpe_daily_ann": 6.74, "top3_concentration_pct": 31, "note": "full-sample PF 3.22 independently reconciles the in-sample vault PF 3.21 -> the engine is a faithful build"},
+        "blind_earliest_6mo": {"n": 69, "eff_days": 37, "win_pct": 43.5, "total_pts": 653.2, "pf": 2.16, "max_dd_pts": -120.9, "sharpe_daily_ann": 4.72, "top3_concentration_pct": 70, "note": "STRICT BLIND (Jun-Dec 2025, never tuned) -- the verdict slice. POSITIVE edge: PF 2.16 beats drift 0.66, adequate n=69. BUT top-3 trades = 70% of profit (>60% bar)."},
+        "recent_6mo": {"n": 40, "eff_days": 31, "win_pct": 55.0, "total_pts": 1239.4, "pf": 5.24, "max_dd_pts": -61.2, "top3_concentration_pct": 44},
+        "drift_control": {"spec": "random NY_AM long H=24 5m-bars, n=200 + 200-seed MC", "pf": 0.66, "mfe_mae_mc_pooled": 0.846},
+        "verdict": "POSITIVE ON BLIND but HELD at FINDING on concentration. Blind 6mo PF 2.16 (>1.5), beats drift 0.66, n=69 adequate, maxDD tiny (-121pt) -- the FIRST unverified candidate to show a real out-of-sample edge (V4 5m and OB both failed blind). HOWEVER top-3 trades = 70% of blind profit (>the 60% promotion bar) -> not promoted to CANDIDATE per the operator's gate. Notably maxDD -121pt = -$242 @ $2/pt, comfortably inside the $2K prop limit.",
+        "status_recommendation": "FINDING (was FROZEN_AWAITING_OOS). Re-examine concentration: is the blind edge robust if the top 3 winners are removed? De-concentration / per-trade robustness check, then a 2nd OOS window, before promotion. Do NOT deploy yet."
       },
       "caveats": [
         "definitions iterated 4x on same 3-month window \u2014 researcher DoF accumulated; expect material OOS haircut",

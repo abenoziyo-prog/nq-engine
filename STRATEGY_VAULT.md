@@ -9,7 +9,7 @@
 | OB_NYOPEN_BULL_1M | NY-open bullish OB reversion ★ | 1m | **CANDIDATE** (operator OOS; fits prop) | 798 | — | +$15,968 | **2.26** (drift 0.90) | **−$323 (fits $2K ✓)** | — |
 | EMA_PROX_V4_5M | Proximity + acceleration | 5m | **FROZEN — ⚠ OOS FAILED** | 22 | 55% | +5,461 IS | 16.0 IS / **2.39** OOS / 0.99 blind-window | −212 IS / **−$2,582 OOS (>$2K ✗)** | 5.0 |
 | EMA_PROX_V4_15M | Proximity + accel (frozen 15m base) | 15m | CANDIDATE (verified, ⚠ low-n) | 19 | 47% | +4,188 | **3.57** (claim 3.67 ✓) / 1.91 blind | **−$989 (fits $2K ✓)** | 6.0 |
-| LVL_IMB_LONDON_5M | London zones, NY tap, multi-touch | 5m | **FROZEN → OOS** (not yet OOS-tested; engine not built) | 151 | 35% | +4,121 | 3.2 (4.4 w/ EMA gate) | −290 | — |
+| LVL_IMB_LONDON_5M | London zones, NY tap, multi-touch | 5m | **FINDING** (blind PF 2.16 ✓ but 70% conc) | 69 blind | 44% | +653 blind | **2.16** blind / 3.22 full | −121pt (fits $2K ✓) | 4.7 |
 | EMA_PROX_V4_15M_K075 | Prox + accel, slow | 15m | CANDIDATE | 21 | 48% | +6,265 | 4.6 | −980 | 2.0 |
 | EMA_PROX_V0B_5M | Proximity base k=0.75 | 5m | CANDIDATE | 40 | 45% | +4,380 | 3.1 | −1,248 | 3.8 |
 | EMA_PROX_V4_15M_K15 | Prox + accel | 15m | CANDIDATE | 45 | 47% | +3,184 | 2.1 | −922 | 1.9 |
