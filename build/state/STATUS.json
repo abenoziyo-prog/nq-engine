@@ -257,10 +257,10 @@
       "deps": [
         "T01"
       ],
-      "status": "PENDING",
-      "acceptance": null,
+      "status": "BLOCKED",
+      "acceptance": "FAIL: src/engine/ob_nyopen.py implemented faithfully per the OB spec and run through the harness, but does NOT reproduce the operator-external numbers. In-repo n=164/PF0.94/-150.5pt/maxDD-499/7-13 green (net LOSER) vs external n=798/PF2.26/+7984/maxDD-162/13-13. Diagnosis: OB formations in 09:30-11:00 = 210 (body) / 551 (range) < 798 claimed entries -> the external result uses an unspecified different setup definition. Engine NOT tuned to force a match (operator directive). See strategy_vault.json OB_NYOPEN_BULL_1M.in_repo_verification.",
       "commit": null,
-      "notes": "Reproduce operator-reported OB_NYOPEN_BULL_1M (n=798, PF 2.26, DD -$323, 13/13 green) in-repo via src/engine/ob_nyopen.py + regression test. Spec: build/tasks/specs_P6_research.md. Result currently unverified in-session."
+      "notes": "BLOCKED on operator clarification of the exact OB setup definition (displacement metric, formation window 09:30-09:50 vs 09:30-11:00, tap/re-entry & position-concurrency rules). Engine + verification runner committed; numbers unconfirmed in-repo."
     },
     "T25": {
       "name": "ob-walkforward-oos",

@@ -551,7 +551,7 @@
       "status": "CANDIDATE",
       "dataset": "src/data/MNQ_1m_12mo_databento.csv (352695 1m bars w/ volume, 2025-06-15..2026-06-14, exchange-direct Databento, front-month stitched U5/Z5/H6/M6)",
       "direction": "long_only",
-      "provenance": "Result produced OUTSIDE this session (operator external research, 2026-06-15) and recorded here per sync directive. NOT reproduced by the build agent in-session and NOT yet locked by an in-repo regression test (see task T24). Numbers are as reported by the operator.",
+      "provenance": "Result produced OUTSIDE this session (operator external research, 2026-06-15). IN-REPO VERIFICATION (T24, 2026-06-15) FAILED to reproduce — see in_repo_verification: in-repo n=164/PF0.94/-150pt is a net LOSER vs external n=798/PF2.26/+7984. Numbers are UNCONFIRMED in-repo; per operator directive the engine was NOT tuned to force a match. Do not rely on the external numbers until the setup definition is reconciled.",
       "rules": {
         "setup": "bullish order-block reversion at the NY open",
         "window": "09:30-09:50 ET open window (best). The 09:50 macro window is FALSIFIED as weakest (see OB_NYOPEN_MACRO_WINDOW)",
@@ -568,7 +568,21 @@
         "prop_fit": "max DD -$323 fits the $2K trailing prop limit -- KEY property vs V4 5m OOS DD -$2,582 which EXCEEDS it",
         "pnl_units": "USD on MNQ ($2/pt) prop account -- note: differs from the vault-wide convention (NQ points, $20/pt); $-figures here are MNQ prop dollars"
       },
+      "in_repo_verification": {
+        "task": "T24",
+        "run_on": "2026-06-15",
+        "engine": "src/engine/ob_nyopen.py through src/backtest/harness.py (runner: research/task_24_ob_verify.py)",
+        "spec_implemented": "literal per T24: OB = last down candle before a >=1.5*ATR(14) up-displacement candle (body) that breaks the prior 10-bar high, formed 09:30-11:00 ET; enter long at first same-day tap (zone top edge); stop 1pt below zone low; target = entry + 2*max(zone_height,3); 120-min max hold; friction 1pt; single position at a time (harness constraint)",
+        "result": "MISMATCH -- could NOT reproduce the operator-external numbers",
+        "in_repo": {"n": 164, "pf": 0.94, "total_pts": -150.5, "max_dd_pts": -499.2, "win_pct": 38.4, "eff_days": 131, "green_months": "7/13", "verdict": "net LOSER"},
+        "external_claimed": {"n": 798, "pf": 2.26, "total_pts": 7984, "max_dd_pts": -162, "green_months": "13/13"},
+        "diagnosis": "Qualitative mismatch, not a near-miss (in-repo loses money; external strongly wins). Entry count is ~5x too low and the gap CANNOT be tuned away: OB FORMATIONS in the 09:30-11:00 window number only 210 (body-displacement) or 551 (range-displacement) over 12 months -- both fewer than the 798 ENTRIES claimed. 798 entries cannot arise from a single-displacement-bar, one-entry-per-zone, 09:30-11:00 reading. The external pipeline must use a different setup definition (e.g. multi-bar displacement leg, multiple taps / re-entries per zone, concurrent positions, wider window, different zone edge or displacement metric) not captured by the vault description.",
+        "spec_inconsistency": "This entry's rules.window says '09:30-09:50 ET' but the T24 task spec said '09:30-11:00 ET' -- the formation window is itself ambiguous across sources; implemented per the T24 instruction.",
+        "no_tuning_attestation": "src/engine/ob_nyopen.py is a faithful literal implementation of the description; NO parameters were adjusted toward the target numbers (operator directive).",
+        "action_needed": "Operator to supply the exact OB setup definition (displacement metric, window, tap/re-entry and position-concurrency rules) so the engine can be reconciled. Status left CANDIDATE but numbers are UNCONFIRMED; do not promote."
+      },
       "caveats": [
+        "IN-REPO VERIFICATION FAILED (T24) -- the external n=798/PF2.26 numbers are NOT reproducible from this description; see in_repo_verification.",
         "Operator-reported external result; UNVERIFIED in-session. Pending in-repo regression reproduction (T24) and walk-forward OOS (T25).",
         "n=798 raw trades; effective day-level n and top-trade profit concentration were not provided externally -- compute on reproduction (constitution rule 7).",
         "13/13 green months spans a single up-tape year; long-only and regime-conditional, not a permanent truth.",
