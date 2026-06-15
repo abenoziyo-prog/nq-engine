@@ -343,18 +343,52 @@
       "id": "SHOCK_V1",
       "name": "Shock continuation engine",
       "family": "SHOCK",
-      "status": "SPEC_ONLY",
-      "dataset": "needs 1m + volume",
+      "status": "FINDING",
+      "dataset": "UNBLOCKED 2026-06-15: src/data/MNQ_1m_12mo_databento.csv (352695 1m bars w/ volume, 2025-06-15..2026-06-14, exchange-direct)",
       "direction": "both (direction-split)",
       "rules": {
         "spec": "docs/SHOCK_ENGINE_SPEC.md: 4-sigma/180s + 3x volume trigger, entry bake-off E1-E4, impulse-scaled stops, trail/duration exits, gamma-regime conditioning"
       },
       "results": null,
+      "backtest_v1": {
+        "run_on": "2026-06-15",
+        "engine": "src/detector/shock.py (a-priori detection) + research/task_c_shock.py (bake-off + management sec 5-6)",
+        "pre_registration": "detected at k=4.0 and counted BEFORE any outcome computed: UP=31, DOWN=32. Both <50/direction -> pre-registered one-step fallback to k=3.5 (spec sec 8.1): UP=45, DOWN=53. No further threshold changes.",
+        "detection_threshold_final": "k=3.5 (W=180s, m=3.0x vol, A=0.35%, cooldown 30m, sigma EWMA hl=30m, floor 0.25x median|1m logret|)",
+        "event_counts": {"UP": 45, "DOWN": 53},
+        "event_context": {"UP_sessions": {"NY_PM": 16, "LONDON": 15, "NY_AM": 7, "ASIA": 7}, "DOWN_sessions": {"NY_PM": 21, "LONDON": 12, "ASIA": 10, "NY_AM": 10}, "UP_median_sigma": 4.0, "DOWN_median_sigma": 4.2, "median_impulse_range_pts": "UP 112.8 / DOWN 106.8"},
+        "bakeoff_UP": {
+          "E1_immediate": {"n": 45, "win_pct": 42.2, "total_pts": -26.0, "pf": 0.97},
+          "E2_pullback": {"n": 11, "win_pct": 18.2, "total_pts": -42.0, "pf": 0.74, "note": "few fills; misses no-pullback runners by design"},
+          "E3_extreme_break": {"n": 33, "win_pct": 48.5, "total_pts": 849.5, "pf": 3.60, "avgW": 73.5, "maxW": 310.5, "maxL": -67.2, "note": "STANDOUT — the edge is in continuation past the impulse extreme"},
+          "E4_hybrid": {"n": 36, "win_pct": 44.4, "total_pts": 403.7, "pf": 2.74}
+        },
+        "bakeoff_DOWN": {
+          "E1_immediate": {"n": 53, "win_pct": 26.4, "total_pts": -357.1, "pf": 0.70},
+          "E2_pullback": {"n": 13, "win_pct": 7.7, "total_pts": -227.1, "pf": 0.07},
+          "E3_extreme_break": {"n": 38, "win_pct": 39.5, "total_pts": -82.9, "pf": 0.86},
+          "E4_hybrid": {"n": 45, "win_pct": 33.3, "total_pts": -155.0, "pf": 0.62},
+          "verdict": "NO DOWN-shock continuation edge in any scheme (all PF<1). In the Jun2025-Jun2026 up-tape, down-shocks revert -> DOWN is a fade/skip, not continuation (resolves spec sec 9 open question for this regime)."
+        },
+        "drift_control": {"spec": "mandatory random-entry benchmark: NY_AM long, H=60min, n=200 + 200-seed MC", "pf": 0.77, "mfe_mae_mc_pooled": 0.882, "note": "UP E3 PF 3.60 decisively beats the 0.77 random baseline; DOWN schemes sit at/below it"},
+        "verdict": "PROMISING but SUB-THRESHOLD. UP-shock + E3 extreme-break shows a real right-tail edge (PF 3.60, +850pt/12mo, beats E1 baseline 0.97 and random 0.77). DOWN-shocks have no edge (fade/skip). DO NOT PROMOTE: UP n=45 < the 50-event/direction gate (spec sec 8.1); reports-only per gate. Shadow mode >=2wk + more events required before capital (sec 8.4).",
+        "caveats": [
+          "Small n (UP 45 events, E3 33 fills) — high PF on small n; treat as hypothesis, not validated edge.",
+          "gamma_regime UNKNOWN (no dealer-positioning feed) -> the spec's UP-in-SHORT-gamma conditioning was NOT applied; raw all-regime stats.",
+          "Fills assume limit/stop execute at the exact intrabar level (only 1pt friction); no gap-through slippage modeled -> optimistic, esp. for E3 stop entries on fast moves.",
+          "Trail uses a 15-bar swing-low proxy; time guard simplified to globex 17:00 ET; volume baseline trailing-20d-per-TOD causal, sigma floor full-sample.",
+          "Single regime (one up-tape year); DOWN verdict is regime-conditional, not a permanent truth."
+        ]
+      },
       "caveats": [
-        "blocked on 1-min data with volume"
+        "blocked on 1-min data with volume -- RESOLVED 2026-06-15 (databento)",
+        "UP-shock E3 edge is sub-gate (n<50) and single-regime; not promotable yet"
       ],
       "next": [
-        "acquire 1m+volume data (Schwab API)"
+        "gather more UP-shock events (more history / live shadow) to clear the 50-event gate",
+        "acquire a gamma-regime feed and re-bucket UP-shocks by SHORT/LONG gamma",
+        "model execution slippage for E3 stop entries before trusting PF 3.60",
+        "shadow-mode UP-shock E3 >=2 weeks (paper, logged not traded) per spec sec 8.4"
       ]
     },
     {
