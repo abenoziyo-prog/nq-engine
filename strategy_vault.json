@@ -413,6 +413,56 @@
         "blind test on Feb 2026 window when Dec-Mar data lands",
         "review ddG asymmetry if bear approaches too fast for 1-bar accel"
       ]
+    },
+    {
+      "id": "EMA_PROX_V4_1M_TEST",
+      "name": "EMA proximity + acceleration, 1m (exploratory timeframe test)",
+      "family": "EMA_PROX",
+      "status": "SPEC_ONLY",
+      "dataset": "DS-1M-EXPLORATORY (not registered): src/data/NQ_1m_aggregated_clean.csv — 2425 1m bars, 2026-06-11 03:35 to 2026-06-12 20:59 UTC (~41h; tail of DS-5M window, NOT independent OOS); cleaned 0 dupes / 0 OHLC violations / 0 overlap conflicts",
+      "direction": "long_only",
+      "rules": {
+        "config": "base V4 made comparable to the 5m vault base: k=0.02*ATR(14), acceleration ON (ddG>0), long-only, NO daily-align, NO stop; friction 1.0pt; EMAs 9/50 ewm adjust=False; ATR simple rolling-mean",
+        "entry": "as EMA_PROX_V4_5M but on 1m closes",
+        "exit": "anticipated downcross (|gap|<=k, gap>0, dG<0)"
+      },
+      "results": {
+        "n": 1,
+        "winners": 0,
+        "losers": 1,
+        "win_pct": 0.0,
+        "total_pts": -13.8,
+        "total_usd": -276,
+        "avg_winner": 0.0,
+        "avg_loser": -13.8,
+        "max_winner": null,
+        "max_loser": -13.8,
+        "avg_dur_h": 0.68,
+        "max_dur_h": 0.68,
+        "pf": 0.0,
+        "max_dd_pts": -13.8,
+        "sharpe_daily_ann": 0.0,
+        "drift_control": {
+          "spec": "mandatory benchmark: random same-session NY_AM long entries, horizon H=41 1m-bars (matched to V4's single 41-min hold), n=200 seeded + 200-seed Monte-Carlo",
+          "mfe_mae": 1.014,
+          "mfe_mae_mc_pooled": 1.03,
+          "pf": 1.59,
+          "win_pct": 62.5
+        },
+        "vs_benchmark": "V4 PF 0.00 < drift PF 1.59; drift MFE/MAE ~1.0 (neutral up-tape window). V4 does NOT beat the benchmark — but n=1 so statistically meaningless"
+      },
+      "caveats": [
+        "EXPLORATORY / UNTESTED new timeframe — do NOT promote. Logged because negative results are first-class (prevents re-testing a dead config blindly).",
+        "Signal essentially does not fire on 1m: only 1 entry in 2425 bars. k=0.02*ATR on 1m yields a tiny proximity band; the engine likely needs timeframe-specific k retuning before any 1m conclusion is valid.",
+        "Data window ~2 days (Jun 11-12 2026) is the TAIL of the 5m vault window — not independent OOS and far too short (the 5m base ran 3 months / 19168 bars for its +4935).",
+        "n=1, a single -13.8pt loser — no statistical inference; not comparable to the 5m vault headline.",
+        "1m export carries no volume; a full multi-month 1m series (ideally with volume) is required before evaluating this timeframe.",
+        "Source is full-size NQ (~$20/pt); 5m/15m vault data is the MNQ export — point magnitudes comparable, $ values differ."
+      ],
+      "next": [
+        "acquire a full multi-month, independent-window 1m NQ export before any further 1m test",
+        "if pursued, retune k to the 1m ATR scale and re-run with the drift control"
+      ]
     }
   ],
   "falsified_registry_rules": [
