@@ -39,6 +39,27 @@ assumption (1pt friction, bar-close entry) for each active strategy.
 Never adjust live sizing yourself — only flag and recommend.
 ```
 
+### P-FWD · LVL_IMB_LONDON_5M forward paper-log  [TRIGGER: schedule 17:25 ET, Mon–Fri, after Globex close]
+```
+Run the LVL_IMB_LONDON_5M forward-logging harness — its 2nd out-of-sample window,
+a PAPER record of the EXACT verified frozen engine on data it has never seen.
+1. Ensure today's new 5m databento bars (post 2026-06-14) are in src/data/
+   (appended to the 12mo file or dropped as MNQ_5m_forward_*.csv). If none, the
+   harness prints "no forward data yet" — note that and exit.
+2. Run:  python -m src.research.forward_log
+   It loads src/engine/lvl_imb.py with the frozen config (the blind-slice PF 2.16
+   engine — do NOT change any parameter), warms it on full history, and appends
+   today's would-be London trades (zone, intended stop, +1R target, mark-to-close
+   outcome) to logs/forward_london.jsonl. It is idempotent (no double-logging) and
+   places NO orders.
+3. Read the running forward tally (logs/forward_london_tally.json): cumulative
+   forward n, win%, total pts, PF, maxDD. Compare PF to the blind-slice PF 2.16.
+4. Append to the daily brief: "London forward: n=<n>, PF=<pf> vs blind 2.16
+   (<tracking|below>)", plus any new would-be trades today and any open MTM.
+Constitution: research only, never place orders, log every result win or lose,
+never tune the frozen config. The point is an honest forward track record.
+```
+
 ---
 
 ## TIER 2 — Weekly (fires Sunday 12:00 ET, before the week opens)
