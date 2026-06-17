@@ -62,9 +62,11 @@ never tune the frozen config. The point is an honest forward track record.
 
 ### P-PORT · Aggregate portfolio paper-log  [TRIGGER: schedule 17:30 ET, Mon–Fri, after Globex close]
 ```
-Run the aggregate paper-trading model (PORTFOLIO_PAPER_V1) — the equal-weight
-book of the verified/promising sleeves (mean-rev fade 2m + LVL_IMB London/Asia 5m
-+ V4 prox 15m). PAPER record only, NO orders.
+Run the aggregate paper-trading model (PORTFOLIO_PAPER_V1) — ALL 13 runnable
+sleeves, tiered (CORE = mean-rev fade 2m + LVL_IMB London 5m; plus DIVERSIFIER /
+WATCH / FALSIFIED-WATCH / SHOCK sleeves logged for forward observation). PAPER
+record only, NO orders. Capital eligibility is CORE-only and does NOT change by
+logging the others.
 1. Ensure today's post-2026-06-14 bars are resampled to 2m/5m/15m in src/data/.
    If none, the harness prints "no forward data yet" — note it and exit.
 2. Run:  python -m src.research.portfolio --forward

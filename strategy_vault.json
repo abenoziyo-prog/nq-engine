@@ -814,36 +814,49 @@
     },
     {
       "id": "PORTFOLIO_PAPER_V1",
-      "name": "Aggregate paper-trading model (equal-weight sleeves of the verified/promising book)",
+      "name": "Aggregate paper-trading model (ALL runnable sleeves, tiered)",
       "family": "PORTFOLIO",
       "status": "CANDIDATE",
       "direction": "long_only",
-      "provenance": "Aggregate model built + characterized in-repo 2026-06-17 (src/research/portfolio.py). Combines only the verified / OOS-surviving sleeves; FALSIFIED, PARKED, OOS-failed, and unverified-legacy entries are EXCLUDED. Paper-tracking construct, NOT a promotion to capital.",
-      "sleeves": ["MEANREV_FADE_2M (2m, verified config entry -3.0/exit -0.5)", "LVL_IMB_LONDON_5M (5m)", "LVL_IMB_ASIA_5M (5m)", "EMA_PROX_V4_15M (15m, k=0.02 base)"],
+      "provenance": "Aggregate model built + characterized in-repo (src/research/portfolio.py). Per operator directive 2026-06-17 ('add all strategies, nothing to lose, gather real-condition data'), EVERY strategy with a runnable engine is now wired as a PAPER sleeve, tagged by tier. Paper-tracking only; NOT a promotion to capital. Capital eligibility unchanged: only CORE earns size.",
+      "sleeves_13": {
+        "CORE (capital-eligible)": ["MEANREV_FADE_2M 2m (entry -3.0/exit -0.5)", "LVL_IMB_LONDON_5M 5m"],
+        "DIVERSIFIER (verified, small-n, observation)": ["LVL_IMB_ASIA_5M 5m", "EMA_PROX_V4_15M 15m k=0.02"],
+        "WATCH (weak/OOS-failed/legacy, observation)": ["EMA_PROX_V4_5M 5m", "EMA_PROX_V0B_5M 5m k0.75 noaccel", "EMA_PROX_V4_15M_K075", "EMA_PROX_V4_15M_K15", "EMA_PROX_V0_15M_K15", "EMA_PROX_V4_1M"],
+        "FALSIFIED-WATCH (confirm stays dead)": ["OB_NYOPEN_BULL_1M", "OB_NYOPEN_REENTRY_1M"],
+        "SHOCK (event-driven, volume; exit_ts approx)": ["SHOCK_V1_UP_E3 1m"]
+      },
       "rules": {
         "composition": "equal weight, 1 contract per sleeve, long-only, 1pt friction; sleeves run concurrently on their own timeframes",
-        "risk": "max concurrent open positions observed = 3; the deterministic bridge's risk manager (max_contracts=3, $50K/$2K) clamps total size live; this harness places NO orders (paper only)",
-        "excluded": "all FALSIFIED (OB family, EMA_CROSS_CONFIRMED), PARKED, OOS-failed (EMA_PROX_V4_5M), unverified-legacy (V0B, 15m K075/K15, cross cascade), SPEC_ONLY untested; SHOCK_V1 set aside (needs volume + own event loop, can be added as a 5th sleeve)"
+        "risk": "max concurrent open positions: ALL=9, CORE=2; the deterministic bridge's risk manager (max_contracts=3, $50K/$2K) clamps total live size; this harness places NO orders",
+        "not_wireable": "EMA_PROX_V4_SHORT_5M (short; harness long-only), EMA_CROSS_CONFIRMED / EMA_CROSS_CASCADE_RSI55 (no engine), OB_STRICT_SINGLE_TOUCH / EMA_PROX_V4_SWING (PARKED, no engine), DAY_MAP_V1 (context, not a P&L strategy), OB ablations + EMA_PROX_V4_1M_TEST (superseded)"
       },
-      "results": {
-        "full_12mo": {"n": 343, "win_pct": 60.6, "total_pts": 15092.6, "pf": 4.26, "max_dd_pts": -497.6, "max_dd_usd": -995, "sharpe_daily_ann": 4.78, "top3_concentration_pct": 26},
-        "blind_earliest_6mo": {"n": 199, "win_pct": 59.3, "total_pts": 6945.6, "pf": 3.27, "max_dd_pts": -497.6, "max_dd_usd": -995, "sharpe_daily_ann": 4.67, "top3_concentration_pct": 31, "note": "the verdict slice -- combined blind PF 3.27 on n=199; concentration 31% is far below the individual sleeves (fade 20%, London 70%, Asia 95%, V4 249%) -> diversification is the main benefit of aggregation"},
-        "recent_6mo": {"n": 144, "pf": 6.16, "total_pts": 8147.0, "max_dd_pts": -231.6},
-        "attribution_note": "~80% of the blind edge is MEANREV_FADE_2M (blind +5,114pt of +6,946); LVL_IMB_LONDON (+653), ASIA (+437, n=11), EMA_PROX_V4_15M (+742, PF 1.52 top3 249%) are smaller diversifying sleeves -- V4_15M and Asia are near-passengers on tiny n."
+      "results_all_13_sleeves": {
+        "full_12mo": {"n": 1625, "win_pct": 45.3, "total_pts": 42261.8, "pf": 1.87, "max_dd_pts": -4277.7, "max_dd_usd": -8555, "top3_concentration_pct": 13},
+        "blind_earliest_6mo": {"n": 850, "win_pct": 43.8, "total_pts": 12390.0, "pf": 1.49, "max_dd_pts": -3690.9, "max_dd_usd": -7382, "top3_concentration_pct": 25},
+        "recent_6mo": {"n": 775, "pf": 2.28, "total_pts": 29871.7, "max_dd_pts": -4277.7}
       },
-      "paper_log": "logs/portfolio_paper.jsonl (forward, post-2026-06-14, idempotent, no orders); run: python -m src.research.portfolio --forward; routine P-PORT daily after Globex close",
+      "results_CORE_capital_eligible": {
+        "full_12mo": {"n": 300, "win_pct": 62.0, "total_pts": 9972.6, "pf": 4.51, "max_dd_pts": -193.0, "max_dd_usd": -386, "top3_concentration_pct": 10},
+        "blind_earliest_6mo": {"n": 175, "win_pct": 61.1, "total_pts": 5767.1, "pf": 4.64, "max_dd_pts": -193.0, "max_dd_usd": -386, "top3_concentration_pct": 17},
+        "recent_6mo": {"n": 125, "pf": 4.34, "total_pts": 4205.5, "max_dd_pts": -128.7}
+      },
+      "key_finding": "Throwing ALL 13 sleeves in DILUTES the edge: equal-weight-all blind PF 1.49, maxDD -$7,382 (the WATCH/FALSIFIED sleeves are net drags). The CORE two sleeves (fade + London) carry the real edge: blind PF 4.64, maxDD only -$386. So 'add everything' is valuable for GATHERING FORWARD DATA on every sleeve, NOT as a deployable equal-weight blob. Capital -> CORE only.",
+      "per_sleeve_blind_pf": {"MEANREV_FADE_2M": 5.99, "LVL_IMB_LONDON_5M": 2.16, "LVL_IMB_ASIA_5M": 9.31, "EMA_PROX_V4_15M": 1.52, "EMA_PROX_V4_5M": 0.71, "EMA_PROX_V0B_5M": 0.88, "EMA_PROX_V4_15M_K075": 1.46, "EMA_PROX_V4_15M_K15": 3.21, "EMA_PROX_V0_15M_K15": 2.90, "EMA_PROX_V4_1M": 0.93, "OB_NYOPEN_BULL_1M": 0.83, "OB_NYOPEN_REENTRY_1M": 0.72, "SHOCK_V1_UP_E3": 1.65, "note": "first in-repo blind read of the 15m legacy configs: K15 3.21 / V0_15M_K15 2.90 hold up better than expected (small n) -- flagged as a side finding, still observation-only"},
+      "paper_log": "logs/portfolio_paper.jsonl (forward, post-2026-06-14, idempotent, no orders, per-sleeve attribution); run: python -m src.research.portfolio --forward; routine P-PORT daily after Globex close",
       "caveats": [
-        "PAPER-TRACKING ONLY -- not promoted to capital; the bridge/risk manager governs any live sizing, this harness never places orders.",
-        "Edge is ~80% the mean-rev fade; the other three sleeves are small-n diversifiers (V4_15M n=19 & Asia n=24 are fragile, high-concentration passengers -- candidates to drop).",
-        "Single bull-year regime; fade and V4 have NO stop -> the whole book is untested through a sustained downtrend.",
-        "Blind PF 3.27 is in-sample-of-the-12mo (earliest-6mo split); the genuine forward test is the paper log accruing on post-2026-06-14 data, which does not exist yet.",
-        "Equal-weight/1-contract is a placeholder; no vol-targeting or correlation-based sizing yet."
+        "PAPER-TRACKING ONLY across all 13 sleeves -- never places orders; capital eligibility is CORE-only and UNCHANGED by adding sleeves.",
+        "Equal-weight-ALL is NOT a deployable model (blind PF 1.49, DD -$7,382); it exists to collect real-condition forward data on every strategy, win or lose.",
+        "WATCH + FALSIFIED-WATCH sleeves are logged to confirm they stay weak/dead forward (FALSIFIED status unchanged); a sleeve coming alive in a new regime would be information, not a re-promotion.",
+        "Single bull-year regime; fade and V4 sleeves have NO stop -> untested through a sustained downtrend.",
+        "ALL-sleeve concurrency hits 9; live, the risk manager clamps to max_contracts=3 -> the equal-weight-all could not be traded as-is anyway.",
+        "Blind numbers are in-sample-of-the-12mo; the genuine OOS test is the forward paper log on post-2026-06-14 data, which does not exist yet."
       ],
       "next": [
-        "accrue the forward paper log on real post-2026-06-14 data (the actual out-of-sample test)",
-        "decide whether to drop the fragile passengers (V4_15M, Asia) or down-weight them",
-        "add stops to the fade and re-characterize; consider risk-parity weighting",
-        "add SHOCK_V1 UP/E3 as a 5th sleeve once volume-aware logging is wired"
+        "accrue the forward paper log on real post-2026-06-14 data across all sleeves (the actual OOS test)",
+        "kill any sleeve whose forward PF drops < 1.0 (deploy-then-kill); promote a WATCH sleeve only if it independently clears adequate-n + concentration forward",
+        "trade CORE only for capital; add stops to the fade; consider risk-parity weighting on CORE",
+        "wire SHOCK exit timestamps properly (currently exit_ts approximated as entry_ts)"
       ]
     }
   ],
