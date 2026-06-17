@@ -882,7 +882,8 @@
         "blind_earliest_6mo": {"n": 127, "win_pct": 48.8, "pf": 1.19, "total_pts": 1002.5},
         "recent_6mo": {"n": 121, "win_pct": 54.5, "pf": 1.21},
         "drift_control_pf": 0.70,
-        "verdict": "NOT DEPLOYABLE as a naive fade. PF ~1.20 (stable, beats drift 0.70) but barely positive after friction, and maxDD -$3,074 BLOWS the $2K prop limit. The high fill RATE != expectancy. Refinement hypothesis (NOT yet tested, do not tune in-sample): fade ONLY small gaps (which fill ~95-100%) and skip/continuation on >0.5-1% gaps -- exactly what the by-size report implies."
+        "verdict": "NOT DEPLOYABLE as a naive fade. PF ~1.20 (stable, beats drift 0.70) but barely positive after friction, and maxDD -$3,074 BLOWS the $2K prop limit. The high fill RATE != expectancy.",
+        "variation_sweep_2026_06_17": "Tested via src/research/edgeful_reports.py sweep (config-driven; blind/recent PF + drift shown per cell). FINDING: the 'fade only small gaps' refinement is REFUTED -- small-gap-only (0-0.4%) fade is WORSE (PF 0.90 full / 0.71 blind) because friction eats the tiny targets despite ~90% fill. Across the full grid (gap%range x direction), no RTH cell clears PF>1.5-blind + beats-drift + fits-$2K. The one notable cell: AM-session-only (09:30-11:00) small UP-gap fade -> PF 1.43 full / 1.24 blind / 1.61 recent, DD -$635 (fits $2K). BUT it is sweep-derived (selection bias) -> a hypothesis needing fresh out-of-sample confirmation, NOT a found edge."
       },
       "caveats": [
         "Edgeful API plan does NOT cover NQ (RTY only) + only 3 reports -> these are OUR reproductions on NQ, not Edgeful's NQ numbers (no cross-check available without a paid upgrade).",
