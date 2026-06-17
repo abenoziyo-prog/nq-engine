@@ -871,7 +871,8 @@
         "note": "stable across the blind-earliest-6mo vs recent split (regime check Edgeful does not show)",
         "prev_day_range": "PDH broken ~57-63% of days, of those ~62-68% close green; PDL broken ~41-44%, of those ~62% close RED (up-tape signature)",
         "opening_stats": "~57% open inside prior day H-L; ~27% above PDH / ~16% below PDL (recent shifted more below -> regime)",
-        "gap_fill_by_size": "KEY (reproduces Edgeful): small gaps fill ~97-100%, 0.1-0.25% ~75%, 0.25-0.5% ~60%, 0.5-1% ~35%, >1% ~10-36%. Fill prob falls with gap size; stable across slices.",
+        "gap_fill_by_size": "KEY (reproduces Edgeful): fill prob falls with gap size; aligned to Edgeful's exact buckets + direction split. NQ recent-6mo gap-UP fill: 0-0.19% 90%, 0.2-0.39% 92%, 0.4-0.69% 17%, 0.7-0.99% 33%, >=1% ~0%; gap-DOWN fill stays moderate (55-75%) then falls. Small n/bucket (6-21).",
+        "cross_check_qqq_screenshot": "Edgeful QQQ (web app, Dec17'25-Jun16'26) 0.2-0.39%: gap-up 88% / gap-down 50%. Our NQ same window/bucket: up 91.7% / down 60.0% -> same up>>down asymmetry + ballpark, on QQQ(cash) vs NQ(futures). Validates methodology. NOTE: API key plan can't pull QQQ or NQ (AAPL/RTY + 3 reports only), so cross-checks come from operator screenshots, not the API.",
         "orb_15m": "~76% break the 15m OR high, ~74% break the OR low (both run most days); only ~57% of up-breaks close above -> weak continuation",
         "green_red_weekday": "Mon greenest (62.7%), Thu weakest (48%); ~50 days/weekday (small n)"
       },

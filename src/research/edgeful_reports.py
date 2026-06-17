@@ -92,22 +92,35 @@ def report_green_red_by_weekday(days):
     return out
 
 
+# Edgeful's exact gap-fill-by-size buckets (gap as % of prior close); labels match their UI
+EDGEFUL_BUCKETS = [(0, 0.2, "0-0.19%"), (0.2, 0.4, "0.2-0.39%"), (0.4, 0.7, "0.4-0.69%"),
+                   (0.7, 1.0, "0.7-0.99%"), (1.0, 1.5, "1.0-1.49%"), (1.5, 1e9, ">=1.5%")]
+
+
+def _filled(d):
+    return (d["low"] <= d["prev_close"]) if d["open"] > d["prev_close"] else (d["high"] >= d["prev_close"])
+
+
 def report_gap_fill(days):
     gaps = [d for d in days if d["open"] != d["prev_close"]]
-    def filled(d):
-        return (d["low"] <= d["prev_close"]) if d["open"] > d["prev_close"] else (d["high"] >= d["prev_close"])
-    f = sum(1 for d in gaps if filled(d))
-    ups = [d for d in gaps if d["open"] > d["prev_close"]]; dns = [d for d in gaps if d["open"] < d["prev_close"]]
-    # by size bucket (gap as % of prev_close)
-    buckets = [(0, 0.1), (0.1, 0.25), (0.25, 0.5), (0.5, 1.0), (1.0, 99)]
-    bk = {}
-    for lo, hi in buckets:
-        xs = [d for d in gaps if lo <= abs(d["open"] - d["prev_close"]) / d["prev_close"] * 100 < hi]
-        bk[f"{lo}-{hi}%"] = (len(xs), pct(sum(1 for d in xs if filled(d)), len(xs)))
-    return {"n_gaps": len(gaps), "fill_pct": pct(f, len(gaps)),
-            "up_fill_pct": pct(sum(1 for d in ups if filled(d)), len(ups)),
-            "down_fill_pct": pct(sum(1 for d in dns if filled(d)), len(dns)),
-            "fill_by_size": bk}
+    ups = [d for d in gaps if d["open"] > d["prev_close"]]
+    dns = [d for d in gaps if d["open"] < d["prev_close"]]
+    return {"n_gaps": len(gaps), "fill_pct": pct(sum(1 for d in gaps if _filled(d)), len(gaps)),
+            "up_fill_pct": pct(sum(1 for d in ups if _filled(d)), len(ups)),
+            "down_fill_pct": pct(sum(1 for d in dns if _filled(d)), len(dns))}
+
+
+def report_gap_fill_by_size(days):
+    """Edgeful-style: per size bucket, fill% split by direction (gap up vs gap down)."""
+    def gp(d):
+        return abs(d["open"] - d["prev_close"]) / d["prev_close"] * 100
+    out = {}
+    for lo, hi, label in EDGEFUL_BUCKETS:
+        up = [d for d in days if d["open"] > d["prev_close"] and lo <= gp(d) < hi]
+        dn = [d for d in days if d["open"] < d["prev_close"] and lo <= gp(d) < hi]
+        out[label] = {"up": (len(up), pct(sum(1 for d in up if _filled(d)), len(up))),
+                      "down": (len(dn), pct(sum(1 for d in dn if _filled(d)), len(dn)))}
+    return out
 
 
 def report_orb(days, or_min=15):
@@ -178,8 +191,11 @@ def main():
         print(f"================ {name}  (n_days={len(ds)}) ================")
         print(" prev-day-range:", report_previous_days_range(ds))
         print(" opening-stats :", report_opening_stats(ds))
-        print(" gap-fill      :", {k: report_gap_fill(ds)[k] for k in ("n_gaps", "fill_pct", "up_fill_pct", "down_fill_pct")})
-        print(" gap-fill/size :", report_gap_fill(ds)["fill_by_size"])
+        print(" gap-fill      :", report_gap_fill(ds))
+        gs = report_gap_fill_by_size(ds)
+        print(" gap-fill/size (n,fill%) up | down:")
+        for b in gs:
+            print(f"     {b:10} up={gs[b]['up']}  down={gs[b]['down']}")
         print(" ORB(15m)      :", report_orb(ds))
         if name == "FULL":
             print(" green/red wkdy:", report_green_red_by_weekday(ds))
