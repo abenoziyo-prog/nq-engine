@@ -124,7 +124,7 @@
       "deps": [],
       "status": "DONE",
       "acceptance": "PASS: src/bridge/tradovate_client.py \u2014 REST+WS client, auth STUBBED to .env (TRADOVATE_*); DRY_RUN by default (no network, no live orders); DEMO_LIVE gated + order placement disabled pending T18. tests/test_bridge.py green.",
-      "commit": "38c30eb",
+      "commit": "a50897f",
       "notes": "Zero-cost paper path: add free Tradovate DEMO keys to .env to enable DEMO mode; live placement still gated by T18."
     },
     "T13": {
@@ -135,7 +135,7 @@
       ],
       "status": "DONE",
       "acceptance": "PASS: src/bridge/oso.py \u2014 isAutomated:true OSO bracket (entry + OCO stop/target), tick-rounded, geometry-validated; build_flatten for closes. tests green.",
-      "commit": "38c30eb",
+      "commit": "a50897f",
       "notes": ""
     },
     "T14": {
@@ -147,7 +147,7 @@
       ],
       "status": "DONE",
       "acceptance": "PASS: src/bridge/bridge.py \u2014 signal -> RiskManager.evaluate -> OSO -> client(dry-run); ALLOW/DOWNSIZE place paper OSO, REJECT/HALT dropped (no order), FLAT always flattens. Reuses T04 risk boundaries. tests green.",
-      "commit": "38c30eb",
+      "commit": "a50897f",
       "notes": "Bridge built; paper-only (dry-run). T18 paper-integration-test remains BLOCKED_ON_KEYS (needs demo creds + T17 live feed)."
     },
     "T15": {
