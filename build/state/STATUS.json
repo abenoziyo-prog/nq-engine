@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-15T18:00:00Z",
+  "updated": "2026-06-17T20:00:00Z",
   "current_task": null,
   "tasks": {
     "T01": {
@@ -20,7 +20,7 @@
       "status": "DONE",
       "acceptance": "PASS: tests/test_vault_regression.py 5 cases green. Locks harness reproduction of EMA_PROX_V4_5M base (n=21/+4935/PF5.66), daily-align (+8114/PF6.96, in vault 5.7->8.1 band), stop-4ATR (n=25/+2828/PF3.88), and EMA_PROX_V0B_5M EXACT vault match (n=40/45%/+4380/PF3.11/maxDD-1248). 15m V4 configs reported pending (not failed). Each assertion names vault id + tolerance.",
       "commit": "1433de5",
-      "notes": "Tests point at the COMMITTED src/data/*.csv (repo-root-relative, CWD-independent); the top-level data/ dir is untracked so the original path would have failed on a fresh clone — corrected per operator. INTEGRITY FLAGS (operator): (1) V4_5M results-block n=22/total5461/PF16.01/maxDD-212 is STALE vs T01 re-baseline (n=21) and not reproducible by current harness — locked harness output instead, did NOT edit vault. (2) Sharpe convention differs (V0B vault 3.81 vs harness 5.87) — Sharpe excluded from assertions. (3) 15m configs reported pending (baselines not yet calibrated); src/data/MNQ_15m CSV is present. NOTE: src/backtest/drift_control.py DEFAULT_DATA still points at untracked data/ (T07 scope, left untouched)."
+      "notes": "Tests point at the COMMITTED src/data/*.csv (repo-root-relative, CWD-independent); the top-level data/ dir is untracked so the original path would have failed on a fresh clone \u2014 corrected per operator. INTEGRITY FLAGS (operator): (1) V4_5M results-block n=22/total5461/PF16.01/maxDD-212 is STALE vs T01 re-baseline (n=21) and not reproducible by current harness \u2014 locked harness output instead, did NOT edit vault. (2) Sharpe convention differs (V0B vault 3.81 vs harness 5.87) \u2014 Sharpe excluded from assertions. (3) 15m configs reported pending (baselines not yet calibrated); src/data/MNQ_15m CSV is present. NOTE: src/backtest/drift_control.py DEFAULT_DATA still points at untracked data/ (T07 scope, left untouched)."
     },
     "T03": {
       "name": "data-store",
@@ -122,10 +122,10 @@
       "name": "tradovate-client",
       "phase": "P3",
       "deps": [],
-      "status": "PENDING",
-      "acceptance": null,
-      "commit": null,
-      "notes": ""
+      "status": "DONE",
+      "acceptance": "PASS: src/bridge/tradovate_client.py \u2014 REST+WS client, auth STUBBED to .env (TRADOVATE_*); DRY_RUN by default (no network, no live orders); DEMO_LIVE gated + order placement disabled pending T18. tests/test_bridge.py green.",
+      "commit": "38c30eb",
+      "notes": "Zero-cost paper path: add free Tradovate DEMO keys to .env to enable DEMO mode; live placement still gated by T18."
     },
     "T13": {
       "name": "oso-bracket-builder",
@@ -133,9 +133,9 @@
       "deps": [
         "T12"
       ],
-      "status": "PENDING",
-      "acceptance": null,
-      "commit": null,
+      "status": "DONE",
+      "acceptance": "PASS: src/bridge/oso.py \u2014 isAutomated:true OSO bracket (entry + OCO stop/target), tick-rounded, geometry-validated; build_flatten for closes. tests green.",
+      "commit": "38c30eb",
       "notes": ""
     },
     "T14": {
@@ -145,10 +145,10 @@
         "T04",
         "T13"
       ],
-      "status": "PENDING",
-      "acceptance": null,
-      "commit": null,
-      "notes": ""
+      "status": "DONE",
+      "acceptance": "PASS: src/bridge/bridge.py \u2014 signal -> RiskManager.evaluate -> OSO -> client(dry-run); ALLOW/DOWNSIZE place paper OSO, REJECT/HALT dropped (no order), FLAT always flattens. Reuses T04 risk boundaries. tests green.",
+      "commit": "38c30eb",
+      "notes": "Bridge built; paper-only (dry-run). T18 paper-integration-test remains BLOCKED_ON_KEYS (needs demo creds + T17 live feed)."
     },
     "T15": {
       "name": "reconciliation-loop",
