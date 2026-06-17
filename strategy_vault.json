@@ -858,6 +858,42 @@
         "trade CORE only for capital; add stops to the fade; consider risk-parity weighting on CORE",
         "wire SHOCK exit timestamps properly (currently exit_ts approximated as entry_ts)"
       ]
+    },
+    {
+      "id": "EDGEFUL_NQ_REPORTS",
+      "name": "Edgeful-style probability reports reproduced on NQ (study + gap-fill backtest)",
+      "family": "SESSION_STRUCTURE",
+      "status": "FINDING",
+      "dataset": "src/data/MNQ_1m_12mo_databento.csv -> RTH cash days (09:30-16:00 ET), 256 days, 2025-06-17..2026-06-12",
+      "direction": "context / long+short",
+      "provenance": "Built in-repo 2026-06-17 (src/research/edgeful_reports.py). Reproduces Edgeful's report methodology on OUR NQ data (no API needed for NQ; the API plan only covers RTY + 3 reports). Definitions matched to the live Edgeful schema we captured for previous-days-range / opening-stats / green-red-by-weekday.",
+      "layer_a_stats": {
+        "note": "stable across the blind-earliest-6mo vs recent split (regime check Edgeful does not show)",
+        "prev_day_range": "PDH broken ~57-63% of days, of those ~62-68% close green; PDL broken ~41-44%, of those ~62% close RED (up-tape signature)",
+        "opening_stats": "~57% open inside prior day H-L; ~27% above PDH / ~16% below PDL (recent shifted more below -> regime)",
+        "gap_fill_by_size": "KEY (reproduces Edgeful): small gaps fill ~97-100%, 0.1-0.25% ~75%, 0.25-0.5% ~60%, 0.5-1% ~35%, >1% ~10-36%. Fill prob falls with gap size; stable across slices.",
+        "orb_15m": "~76% break the 15m OR high, ~74% break the OR low (both run most days); only ~57% of up-breaks close above -> weak continuation",
+        "green_red_weekday": "Mon greenest (62.7%), Thu weakest (48%); ~50 days/weekday (small n)"
+      },
+      "layer_b_gap_fade_backtest": {
+        "spec": "fade the gap toward prior close; target=prev_close, stop=1x gap, intraday 1m fill-vs-stop, min gap 2pt, friction 1pt; both directions",
+        "full": {"n": 248, "win_pct": 51.6, "pf": 1.20, "total_pts": 2255.2, "max_dd_pts": -1537.0, "max_dd_usd": -3074},
+        "blind_earliest_6mo": {"n": 127, "win_pct": 48.8, "pf": 1.19, "total_pts": 1002.5},
+        "recent_6mo": {"n": 121, "win_pct": 54.5, "pf": 1.21},
+        "drift_control_pf": 0.70,
+        "verdict": "NOT DEPLOYABLE as a naive fade. PF ~1.20 (stable, beats drift 0.70) but barely positive after friction, and maxDD -$3,074 BLOWS the $2K prop limit. The high fill RATE != expectancy. Refinement hypothesis (NOT yet tested, do not tune in-sample): fade ONLY small gaps (which fill ~95-100%) and skip/continuation on >0.5-1% gaps -- exactly what the by-size report implies."
+      },
+      "caveats": [
+        "Edgeful API plan does NOT cover NQ (RTY only) + only 3 reports -> these are OUR reproductions on NQ, not Edgeful's NQ numbers (no cross-check available without a paid upgrade).",
+        "12-month single (bull) regime; weekday/size buckets have small n; seasonality not computable (need multi-year).",
+        "Overlaps DAY_MAP_V1 (session-structure stats) -- same family.",
+        "Gap-fade DD blows prop and PF is marginal -> a probability report is a hypothesis, not an edge, until backtested with R:R + drift (demonstrated here)."
+      ],
+      "next": [
+        "test the small-gap-only fade as a properly-validated strategy (blind OOS + drift + concentration + $2K-DD), with a real stop",
+        "convert ORB / previous-day-range-break into backtested strategies the same way",
+        "if any clears the bar, add as a portfolio sleeve; else log FALSIFIED"
+      ]
     }
   ],
   "falsified_registry_rules": [
