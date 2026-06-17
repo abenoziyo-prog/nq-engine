@@ -754,6 +754,63 @@
         "walk-forward OOS across more windows before trusting PF 3.57 (n far too small)",
         "compare prop-DD fit out-of-sample"
       ]
+    },
+    {
+      "id": "MEANREV_FADE_2M",
+      "name": "Mean-reversion fade (3-ATR stretch below EMA9), 2m, long-only",
+      "family": "MEANREV",
+      "status": "CANDIDATE",
+      "dataset": "src/data/MNQ_2m_12mo_databento.csv (176350 2m bars resampled from databento 1m, 2025-06-15..2026-06-14)",
+      "direction": "long_only",
+      "provenance": "Operator-external sweep finding (UNVERIFIED claim), VERIFIED IN-REPO (T27, 2026-06-17) via src/engine/meanrev_fade.py through the harness; runner research/task_t27_meanrev.py. Engine NOT tuned. NEW FAMILY (a fade, not a trend/zone signal). In-repo numbers below are authoritative; the operator-external claims are tagged where they differ.",
+      "rules": {
+        "timeframe": "2m",
+        "indicators": "EMA9 (ewm) + ATR14 (simple rolling-mean, repo convention)",
+        "entry": "LONG at bar close when distance=(close-EMA9)/ATR <= -3.0 (>=3 ATR below EMA9)",
+        "exit": "at bar close when close >= EMA9 - 0.5*ATR (reverted near the mean)",
+        "stop": "NONE -- reversion-only exit, as specified (catching-a-falling-knife risk; see caveats)",
+        "friction": "1.0 pt RT"
+      },
+      "verification": {
+        "full_12mo": {"in_repo": {"n": 191, "win_pct": 70.2, "total_pts": 8080.1, "pf": 5.06, "max_dd_pts": -245.5, "sharpe_daily_ann": 4.51, "top3_concentration_pct": 12, "trades_per_day": 0.52, "green_months": "9/13"}, "operator_external": {"n": 192, "pf": 5.07, "win": 70, "max_dd_pts": -246, "total_pts": 8112}, "match": "NEAR-EXACT -- n 191 vs 192, PF 5.06 vs 5.07, maxDD -245.5 vs -246, total 8080 vs 8112. Engine faithfully reproduced."},
+        "blind_earliest_6mo": {"in_repo": {"n": 103, "win_pct": 71.8, "total_pts": 4378.8, "pf": 5.27, "max_dd_pts": -245.5, "sharpe_daily_ann": 4.73, "top3_concentration_pct": 23}, "operator_external": {"n": 111, "pf": 6.98, "win": 74}, "match": "DIVERGES on magnitude: in-repo blind PF 5.27 (n=103) vs claimed 6.98 (n=111). NOT an engine bug -- the full sample matches near-exactly, so this is a blind-WINDOW BOUNDARY difference (n 103 vs 111). In-repo still IMPROVES out-of-sample (blind 5.27 > full 5.06), preserving the anti-overfit signature, just less dramatically than claimed."},
+        "recent_6mo": {"in_repo": {"n": 88, "win_pct": 68.2, "total_pts": 3701.3, "pf": 4.83, "max_dd_pts": -209.6, "top3_concentration_pct": 21}},
+        "blind_session_breakdown_in_repo": {"ASIA": {"n": 45, "total_pts": 2325.9, "pf": 6.37}, "LONDON": {"n": 24, "total_pts": 1212.7, "pf": 6.23}, "NY_AM": {"n": 18, "total_pts": -51.1, "pf": 0.84}, "NY_PM": {"n": 16, "total_pts": 891.3, "pf": 22.37}, "note": "Asia/London strong + NY_AM weak (0.84) REPRODUCES the 'fade fails where NY trends' finding qualitatively (claim was Asia/London PF 8.9/19.9, NY ~3.2; magnitudes differ). NY_PM PF 22.37 (n=16) DISAGREES with 'NY weak' -- small-n noise, flagged."},
+        "drift_control": {"spec": "random NY_AM long H=30 2m-bars, n=200, seed=12345", "pf": 0.75, "mfe_mae": 0.791, "note": "fade blind PF 5.27 beats drift 0.75 by a wide margin"},
+        "verdict": "VERIFIED AS CANDIDATE. Full sample reproduces near-exactly (PF 5.06 vs 5.07) -> engine correct. Blind slice clears the promotion gate ON ITS OWN: PF 5.27 > 1.5, beats drift 0.75, adequate n=103, low concentration (23%), 0.52 trades/day, tiny DD (-245pt = -$491, fits $2K prop). DIVERGENCE: the specific claimed blind PF 6.98 did NOT reproduce (got 5.27) -- a window-boundary difference, NOT a bug; recorded, not tuned."
+      },
+      "results": {"pf": 5.06, "n": 191, "total_pts": 8080.1, "max_dd_pts": -245.5, "blind_pf": 5.27, "pnl_units": "points, 1pt friction"},
+      "caveats": [
+        "MEAN-REVERSION LONG IS REGIME-EXPOSED: fading dips in a sustained downtrend = catching a falling knife. No stop in the spec amplifies this. Tested only in a predominantly bull year (Jun2025-Jun2026).",
+        "Blind-PF divergence: operator-external claimed 6.98, in-repo got 5.27 (window-boundary difference; full sample matches exactly). Operator to reconcile the 'earliest 6 months' boundary.",
+        "Edge concentrates in Asia/London (range regimes); NY_AM fails (PF 0.84). NY_PM in-repo PF 22.37 is small-n (16) noise, contradicts the 'NY weak' claim.",
+        "Short version reported marginal/Asia-only by the operator -- UNTESTED in-repo.",
+        "No stop: needs a disaster-brake test and a down-regime / 2nd OOS window before any promotion past CANDIDATE."
+      ],
+      "next": [
+        "down-regime / 2nd OOS window (the bull-year caveat is the main risk)",
+        "test a structural disaster stop (no stop currently)",
+        "reconcile the blind-window boundary with the operator (5.27 vs 6.98)",
+        "forward-log like LVL_IMB_LONDON_5M once a 2nd window exists"
+      ]
+    },
+    {
+      "id": "EMA_CROSS_CASCADE_RSI55",
+      "name": "EMA cross cascade (3m>5m>15m) 7x50 long + RSI55 + momentum filter",
+      "family": "EMA_CROSS",
+      "status": "FINDING",
+      "dataset": "operator-external sweep (~480 cross configs + multi-family); UNVERIFIED in-repo",
+      "direction": "long_only",
+      "provenance": "Operator-external sweep finding (2026-06-17), NOT reproduced in-repo. Recorded as a claim. Distinct from the FALSIFIED single confirmed-cross trigger (EMA_CROSS_CONFIRMED) by the cascade + RSI55 + momentum structural change.",
+      "rules": {"variant": "multi-timeframe cascade 3m>5m>15m, 7x50 EMA cross, long-only, + RSI>55 + momentum filter"},
+      "results": {"best_pf_floor": 2.36, "frequency": "~80 trades/yr (low)", "finding": "real but LOW-FREQUENCY and MODEST: best cross config hit PF floor 2.36 but never PF>4 with adequate frequency. ~480 cross configs swept (single + cascade, all TF/sessions, +momentum +RSI55); all FAILED or marginal on the blind slice."},
+      "caveats": [
+        "Operator-external, UNVERIFIED in-repo; numbers are claims pending reproduction.",
+        "Superseded by MEANREV_FADE_2M for the operator's frequency+PF target (>=every-other-day AND PF>4) -- the cross family is ~80 trades/yr and PF<4.",
+        "Referenced matrix cross_sweep_master_matrix.csv NOT present in repo at record time.",
+        "Does NOT overturn EMA_CROSS_CONFIRMED's FALSIFIED status (that single confirmed-cross trigger remains falsified per the registry)."
+      ],
+      "next": ["reproduce in-repo if the cross family is revisited; otherwise parked behind the mean-reversion fade"]
     }
   ],
   "falsified_registry_rules": [

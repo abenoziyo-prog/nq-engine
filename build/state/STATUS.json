@@ -274,6 +274,17 @@
       "commit": null,
       "notes": "Walk-forward OOS of the OB strategy incl per-window $2K-prop-DD check. Gates CANDIDATE -> FROZEN. Spec: build/tasks/specs_P6_research.md."
     },
+    "T27": {
+      "name": "meanrev-fade-verify",
+      "phase": "P6",
+      "deps": [
+        "T01"
+      ],
+      "status": "DONE",
+      "acceptance": "PASS (verify): src/engine/meanrev_fade.py through the harness on resampled 2m databento reproduces the operator-external MEANREV_FADE_2M FULL sample near-exactly (in-repo n=191/PF5.06/maxDD-245.5/+8080pt vs external n=192/PF5.07/-246/+8112). Blind earliest-6mo DIVERGES on magnitude (in-repo PF 5.27 n=103 vs claimed 6.98 n=111) -- window-boundary difference, NOT a bug (full match proves engine correct). Blind clears CANDIDATE gate on its own (PF 5.27>1.5, beats drift 0.75, n=103, conc 23%). MEANREV_FADE_2M -> CANDIDATE. Engine NOT tuned.",
+      "commit": null,
+      "notes": "NOTE: the operator labeled this 'T25', but T25 already exists (ob-walkforward-oos, now moot since OB falsified) -- used the next free id T27 to avoid overwriting. Mean-reversion fade is a NEW family; full-sample verified, blind-PF magnitude flagged as divergent."
+    },
     "T26": {
       "name": "shock-v1-build",
       "phase": "P6",

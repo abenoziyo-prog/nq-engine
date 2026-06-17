@@ -6,7 +6,8 @@
 
 | ID | Strategy | TF | Status | n | Win% | Total pts | PF | MaxDD | Sharpe |
 |---|---|---|---|---|---|---|---|---|---|
-| OB_NYOPEN_BULL_1M | NY-open bullish OB reversion ★ | 1m | **CANDIDATE** (operator OOS; fits prop) | 798 | — | +$15,968 | **2.26** (drift 0.90) | **−$323 (fits $2K ✓)** | — |
+| MEANREV_FADE_2M | Mean-rev fade (3-ATR below EMA9) ★NEW | 2m | **CANDIDATE** (verified in-repo; full match) | 103 blind | 72% | +4,379 blind | **5.27** blind / 5.06 full (drift 0.75) | −245pt (−$491, fits $2K ✓) | 4.7 |
+| OB_NYOPEN_BULL_1M | NY-open bullish OB reversion | 1m | **FALSIFIED** (single-entry; re-entry too) | 164 | 38% | −150 | 0.94 | — | — |
 | EMA_PROX_V4_5M | Proximity + acceleration | 5m | **FROZEN — ⚠ OOS FAILED** | 22 | 55% | +5,461 IS | 16.0 IS / **2.39** OOS / 0.99 blind-window | −212 IS / **−$2,582 OOS (>$2K ✗)** | 5.0 |
 | EMA_PROX_V4_15M | Proximity + accel (frozen 15m base) | 15m | CANDIDATE (verified, ⚠ low-n) | 19 | 47% | +4,188 | **3.57** (claim 3.67 ✓) / 1.91 blind | **−$989 (fits $2K ✓)** | 6.0 |
 | LVL_IMB_LONDON_5M | London zones, NY tap, multi-touch | 5m | **FINDING** (blind PF 2.16 ✓ but 70% conc) | 69 blind | 44% | +653 blind | **2.16** blind / 3.22 full | −121pt (fits $2K ✓) | 4.7 |
@@ -20,6 +21,7 @@
 | EMA_PROX_V4_1M_12MO | V4 at 1-min (exploratory) | 1m | SPEC ONLY (edge fails: PF 1.3 full / 1.1 OOS) | 327 | 46% | +3,596 | 1.3 | −1,909 | 1.3 |
 | EMA_PROX_V4_SWING | Multi-day swing variant | 5m | PARKED (merge w/ V4_5M) | 22 | — | — | 7.6–16.5 | — | — |
 | OB_STRICT_SINGLE_TOUCH | Strict-mitigation OB | both | SUPERSEDED | — | — | — | — | — | — |
+| EMA_CROSS_CASCADE_RSI55 | Cross cascade 3m>5m>15m 7x50 +RSI55 (operator-ext) | multi | FINDING (low-freq, ~80/yr; UNVERIFIED) | — | — | — | 2.36 floor | — | — |
 | EMA_CROSS_CONFIRMED | Crossover at confirmed cross | 5m | **FALSIFIED** | 511 | 27% | −2,307 | 0.89 | −3,216 | — |
 
 ## ⚠ 12-month databento OOS update (2026-06-15)
