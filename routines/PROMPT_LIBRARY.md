@@ -60,6 +60,24 @@ Constitution: research only, never place orders, log every result win or lose,
 never tune the frozen config. The point is an honest forward track record.
 ```
 
+### P-PORT · Aggregate portfolio paper-log  [TRIGGER: schedule 17:30 ET, Mon–Fri, after Globex close]
+```
+Run the aggregate paper-trading model (PORTFOLIO_PAPER_V1) — the equal-weight
+book of the verified/promising sleeves (mean-rev fade 2m + LVL_IMB London/Asia 5m
++ V4 prox 15m). PAPER record only, NO orders.
+1. Ensure today's post-2026-06-14 bars are resampled to 2m/5m/15m in src/data/.
+   If none, the harness prints "no forward data yet" — note it and exit.
+2. Run:  python -m src.research.portfolio --forward
+   Appends each sleeve's would-be trade today to logs/portfolio_paper.jsonl
+   (idempotent, with sleeve attribution) and updates the running aggregate tally
+   (logs/portfolio_paper_tally.json): combined n, win%, total, PF, maxDD ($).
+3. Brief: "Portfolio paper: n=<n>, PF=<pf>, DD=$<dd>; per-sleeve attribution; any
+   sleeve whose forward PF has dropped below 1.0 -> flag for kill (per the
+   deploy-then-kill philosophy)."
+Constitution: research only, never place orders, never tune the sleeve configs.
+The forward paper log on post-window data is the genuine out-of-sample test.
+```
+
 ---
 
 ## TIER 2 — Weekly (fires Sunday 12:00 ET, before the week opens)

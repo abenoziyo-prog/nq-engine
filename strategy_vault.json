@@ -811,6 +811,40 @@
         "Does NOT overturn EMA_CROSS_CONFIRMED's FALSIFIED status (that single confirmed-cross trigger remains falsified per the registry)."
       ],
       "next": ["reproduce in-repo if the cross family is revisited; otherwise parked behind the mean-reversion fade"]
+    },
+    {
+      "id": "PORTFOLIO_PAPER_V1",
+      "name": "Aggregate paper-trading model (equal-weight sleeves of the verified/promising book)",
+      "family": "PORTFOLIO",
+      "status": "CANDIDATE",
+      "direction": "long_only",
+      "provenance": "Aggregate model built + characterized in-repo 2026-06-17 (src/research/portfolio.py). Combines only the verified / OOS-surviving sleeves; FALSIFIED, PARKED, OOS-failed, and unverified-legacy entries are EXCLUDED. Paper-tracking construct, NOT a promotion to capital.",
+      "sleeves": ["MEANREV_FADE_2M (2m, verified config entry -3.0/exit -0.5)", "LVL_IMB_LONDON_5M (5m)", "LVL_IMB_ASIA_5M (5m)", "EMA_PROX_V4_15M (15m, k=0.02 base)"],
+      "rules": {
+        "composition": "equal weight, 1 contract per sleeve, long-only, 1pt friction; sleeves run concurrently on their own timeframes",
+        "risk": "max concurrent open positions observed = 3; the deterministic bridge's risk manager (max_contracts=3, $50K/$2K) clamps total size live; this harness places NO orders (paper only)",
+        "excluded": "all FALSIFIED (OB family, EMA_CROSS_CONFIRMED), PARKED, OOS-failed (EMA_PROX_V4_5M), unverified-legacy (V0B, 15m K075/K15, cross cascade), SPEC_ONLY untested; SHOCK_V1 set aside (needs volume + own event loop, can be added as a 5th sleeve)"
+      },
+      "results": {
+        "full_12mo": {"n": 343, "win_pct": 60.6, "total_pts": 15092.6, "pf": 4.26, "max_dd_pts": -497.6, "max_dd_usd": -995, "sharpe_daily_ann": 4.78, "top3_concentration_pct": 26},
+        "blind_earliest_6mo": {"n": 199, "win_pct": 59.3, "total_pts": 6945.6, "pf": 3.27, "max_dd_pts": -497.6, "max_dd_usd": -995, "sharpe_daily_ann": 4.67, "top3_concentration_pct": 31, "note": "the verdict slice -- combined blind PF 3.27 on n=199; concentration 31% is far below the individual sleeves (fade 20%, London 70%, Asia 95%, V4 249%) -> diversification is the main benefit of aggregation"},
+        "recent_6mo": {"n": 144, "pf": 6.16, "total_pts": 8147.0, "max_dd_pts": -231.6},
+        "attribution_note": "~80% of the blind edge is MEANREV_FADE_2M (blind +5,114pt of +6,946); LVL_IMB_LONDON (+653), ASIA (+437, n=11), EMA_PROX_V4_15M (+742, PF 1.52 top3 249%) are smaller diversifying sleeves -- V4_15M and Asia are near-passengers on tiny n."
+      },
+      "paper_log": "logs/portfolio_paper.jsonl (forward, post-2026-06-14, idempotent, no orders); run: python -m src.research.portfolio --forward; routine P-PORT daily after Globex close",
+      "caveats": [
+        "PAPER-TRACKING ONLY -- not promoted to capital; the bridge/risk manager governs any live sizing, this harness never places orders.",
+        "Edge is ~80% the mean-rev fade; the other three sleeves are small-n diversifiers (V4_15M n=19 & Asia n=24 are fragile, high-concentration passengers -- candidates to drop).",
+        "Single bull-year regime; fade and V4 have NO stop -> the whole book is untested through a sustained downtrend.",
+        "Blind PF 3.27 is in-sample-of-the-12mo (earliest-6mo split); the genuine forward test is the paper log accruing on post-2026-06-14 data, which does not exist yet.",
+        "Equal-weight/1-contract is a placeholder; no vol-targeting or correlation-based sizing yet."
+      ],
+      "next": [
+        "accrue the forward paper log on real post-2026-06-14 data (the actual out-of-sample test)",
+        "decide whether to drop the fragile passengers (V4_15M, Asia) or down-weight them",
+        "add stops to the fade and re-characterize; consider risk-parity weighting",
+        "add SHOCK_V1 UP/E3 as a 5th sleeve once volume-aware logging is wired"
+      ]
     }
   ],
   "falsified_registry_rules": [
