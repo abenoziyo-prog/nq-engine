@@ -19,6 +19,30 @@ DEMO_BASE = "https://demo.tradovateapi.com/v1"   # DEMO endpoint only — never 
 CRED_KEYS = ("NAME", "PASSWORD", "APP_ID", "APP_VERSION", "CID", "SEC", "DEVICE_ID")
 
 
+def _repo_root() -> str:
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def load_env_file(path: str | None = None) -> dict:
+    """Load KEY=VALUE lines from a repo-root .env into the environment (does NOT
+    override already-set vars). No-op if absent. Lets you 'drop keys in .env'
+    instead of exporting them. The .env file is gitignored — keys never commit."""
+    path = path or os.path.join(_repo_root(), ".env")
+    loaded: dict[str, str] = {}
+    if not os.path.exists(path):
+        return loaded
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k, v = k.strip(), v.strip().strip('"').strip("'")
+            os.environ.setdefault(k, v)
+            loaded[k] = v
+    return loaded
+
+
 @dataclass
 class TradovateConfig:
     base_url: str = DEMO_BASE
@@ -31,6 +55,7 @@ class TradovateClient:
     def __init__(self, cfg: TradovateConfig = TradovateConfig()):
         self.cfg = cfg
         self._token: str | None = None
+        load_env_file()   # pull repo-root .env into the environment if present
         self._creds = {k: os.environ.get(cfg.env_prefix + k) for k in CRED_KEYS}
         self.sent: list[dict] = []   # paper log of every order payload seen
 
