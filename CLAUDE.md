@@ -35,17 +35,23 @@ attempt to place, modify, or cancel orders.
   DRY_RUN stays the default when those are unset. If either guard is ever asked to
   be loosened (real account, live port), STOP and get a fresh explicit override —
   this amendment does not extend to live trading.
-
-## Operator amendments to the constitution (logged, dated)
-- **2026-06-23 — Rule 1 PARTIAL OVERRIDE (PAPER ONLY).** The operator explicitly
-  authorized this agent to place **paper** orders on the IBKR demo account
-  (DUQ794374, Gateway port 4002) to forward-test the verified fade engine. This
-  narrows — does not delete — rule 1: **live/real-money order placement remains
-  forbidden.** The code-level guards stay enforced and must NOT be removed: live
-  ports (7496/4001) are hard-refused, and only `DU*` paper accounts are accepted;
-  DRY_RUN stays the default when those are unset. If either guard is ever asked to
-  be loosened (real account, live port), STOP and get a fresh explicit override —
-  this amendment does not extend to live trading.
+- **2026-06-23 — Promotion-path + $2K-fit gates WAIVED for paper forward-test.**
+  The operator directed deploying the full top-10 book to live PAPER simultaneously
+  to gather forward data, explicitly overriding the `frozen → blind OOS → shadow →
+  capital` path and the $2K-DD-fit screen (after being shown which models fail
+  them). Scope + standing conditions:
+  - **PAPER ONLY.** Does NOT authorize capital. The capital gate and the
+    position-netting prerequisite for a multi-engine book still stand.
+  - Each deployed engine is tagged with its `gate_status` so forward data is never
+    mistaken for validated edge. Models known to fail (EMA_PROX_V4_5M: FROZEN +
+    OOS-FAILED + DD>$2K; V0B_5M: DD>$2K; V0_15M_K15: ablation control) are run to
+    OBSERVE failure live, not because they are believed good.
+  - **No engine goes live until it reproduces its vault PF in-repo** (zero-drift
+    check). A guessed config is a drift bug, not a deployment.
+  - **SHOCK_V1 stays out** — the live delayed feed carries no volume, which its
+    trigger requires. A data blocker, not a waiver target.
+  - Rule 2 still holds: deploying a FROZEN config runs it as-is; it does NOT
+    license editing a frozen rule-set.
 
 ## Project philosophy (operator's, internalize it)
 - The unit of edge is the deployment decision, not the model. Models are regime-matched
