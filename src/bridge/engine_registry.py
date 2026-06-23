@@ -30,24 +30,35 @@ class EngineSpec:
     needs_ts: bool = False          # engine.feed_ts(ts) before on_bar (session-aware)
 
 
-# NOTE on EMA_PROX configs: vault rules say "stop: none" but V4Engine defaults
-# stop_atr=4.0 (an active catastrophe brake). These configs are BEST-INFERRED from
-# the vault rule text and MUST be reconciled against vault PF by the fidelity
-# report before being trusted live (CLAUDE.md: "a guessed config is a drift bug").
+# EMA_PROX configs reconciled against research/task_a_v4_oos.py + task_p3_v4_15m.py
+# (the scripts that produced the vault entries): the EMA_PROX family runs with NO
+# catastrophe stop (stop_atr disabled) and NO daily-align sizing — the vault "stop:
+# none". V4Engine's defaults (stop_atr=4.0, daily_align_size=True) must be overridden
+# or the active brake skews trades. k=0.75/1.5 are FIXED-point thresholds (k_fixed).
+NO_STOP = 1e9   # matches research scripts' disable sentinel
+
+
+def _v4(**kw):
+    base = dict(fast=9, slow=50, atr_len=14, accel=True,
+                daily_align_size=False, stop_atr=NO_STOP)
+    base.update(kw)
+    return lambda: V4Engine(V4Config(**base))
+
+
 REGISTRY: list[EngineSpec] = [
     EngineSpec("MEANREV_FADE_2M", lambda: MeanRevFadeEngine(MeanRevConfig()), 2,
                "CANDIDATE (verified PF 5.06)"),
-    EngineSpec("EMA_PROX_V4_15M", lambda: V4Engine(V4Config()), 15,
+    EngineSpec("EMA_PROX_V4_15M", _v4(k_atr=0.02), 15,
                "CANDIDATE (OOS PF 3.57, fits $2K)"),
-    EngineSpec("EMA_PROX_V4_15M_K075", lambda: V4Engine(V4Config(k_fixed=0.75)), 15,
+    EngineSpec("EMA_PROX_V4_15M_K075", _v4(k_fixed=0.75), 15,
                "CANDIDATE (low-n)"),
-    EngineSpec("EMA_PROX_V4_15M_K15", lambda: V4Engine(V4Config(k_fixed=1.5)), 15,
+    EngineSpec("EMA_PROX_V4_15M_K15", _v4(k_fixed=1.5), 15,
                "CANDIDATE"),
-    EngineSpec("EMA_PROX_V4_5M", lambda: V4Engine(V4Config()), 5,
+    EngineSpec("EMA_PROX_V4_5M", _v4(k_atr=0.02), 5,
                "FROZEN/OOS-FAILED, DD>$2K — observe failure only"),
-    EngineSpec("EMA_PROX_V0B_5M", lambda: V4Engine(V4Config(k_fixed=0.75, accel=False)), 5,
+    EngineSpec("EMA_PROX_V0B_5M", _v4(k_fixed=0.75, accel=False), 5,
                "CANDIDATE, DD>$2K — observe"),
-    EngineSpec("EMA_PROX_V0_15M_K15", lambda: V4Engine(V4Config(k_fixed=1.5, accel=False)), 15,
+    EngineSpec("EMA_PROX_V0_15M_K15", _v4(k_fixed=1.5, accel=False), 15,
                "FINDING — ablation control (not a strategy)"),
     EngineSpec("LVL_IMB_LONDON_5M",
                lambda: LvlImbEngine(LvlImbConfig(formation_session=Session.LONDON)), 5,

@@ -19,10 +19,10 @@ from src.bridge.engine_registry import REGISTRY, enabled_specs
 
 POINT_VALUE = 2.0
 DATA = {tf: f"src/data/MNQ_{tf}m_12mo_databento.csv" for tf in (2, 5, 15)}
-VAULT_PF = {  # full-12mo vault reference (None where window-specific / n/a)
-    "MEANREV_FADE_2M": 5.06, "EMA_PROX_V4_15M": 3.57, "EMA_PROX_V4_15M_K075": 4.6,
-    "EMA_PROX_V4_15M_K15": 2.12, "EMA_PROX_V4_5M": None, "EMA_PROX_V0B_5M": 3.11,
-    "EMA_PROX_V0_15M_K15": 1.55, "LVL_IMB_LONDON_5M": 3.21, "LVL_IMB_ASIA_5M": 2.13,
+VAULT_PF = {  # vault reference (reconciled to the research scripts' figures)
+    "MEANREV_FADE_2M": 5.06, "EMA_PROX_V4_15M": 3.57, "EMA_PROX_V4_15M_K075": 3.75,
+    "EMA_PROX_V4_15M_K15": 2.53, "EMA_PROX_V4_5M": 2.39, "EMA_PROX_V0B_5M": 3.11,
+    "EMA_PROX_V0_15M_K15": 1.55, "LVL_IMB_LONDON_5M": 3.21, "LVL_IMB_ASIA_5M": 6.90,
 }
 
 
