@@ -88,6 +88,42 @@ def test_risk_veto_on_extreme_atr():
     assert b.position == 0 and len(b.client.sent) == n_before         # nothing placed
 
 
+# ---------------- delayed reqMktData polling (offline) ----------------
+class _FakeIB:
+    def sleep(self, n):                 # no real waiting in tests
+        pass
+
+
+class _FakeTicker:
+    def __init__(self, lasts, close):
+        self._lasts = list(lasts); self._i = 0; self.close = close
+    @property
+    def last(self):
+        v = self._lasts[min(self._i, len(self._lasts) - 1)]
+        self._i += 1
+        return v
+
+
+def test_poll_builds_window_ohlc():
+    # 4 polls over a 20s window -> O=first, H=max, L=min, C=last
+    t = _FakeTicker([100.0, 105.0, 98.0, 102.0], close=99.0)
+    bar = FadeBridge._poll_one_bar(_FakeIB(), t, window_s=20, poll_s=5)
+    assert bar == (100.0, 105.0, 98.0, 102.0)
+
+
+def test_poll_nan_falls_back_to_close():
+    nan = float("nan")
+    t = _FakeTicker([nan, 105.0, 98.0, 102.0], close=99.0)   # first last nan -> close
+    o, h, l, c = FadeBridge._poll_one_bar(_FakeIB(), t, window_s=20, poll_s=5)
+    assert o == 99.0 and h == 105.0 and l == 98.0 and c == 102.0
+
+
+def test_poll_all_nan_returns_none():
+    nan = float("nan")
+    t = _FakeTicker([nan, nan], close=nan)
+    assert FadeBridge._poll_one_bar(_FakeIB(), t, window_s=10, poll_s=5) is None
+
+
 # ---------------- integrated replay (DRY_RUN) ----------------
 def test_dry_run_replay_produces_trades_and_orders():
     if not os.path.exists(_DATA_2M):

@@ -5,11 +5,15 @@ account. The engine is IMPORTED and called bar-by-bar — its signal logic is ne
 reimplemented here, so there is zero drift between this runner and the backtest
 that produced the in-repo numbers.
 
-Bar construction (must match src/data/resample.py exactly): IBKR 5-sec realtime
-bars are aggregated into clock-aligned 2-min buckets (epoch %120), OHLC =
-first-open / max-high / min-low / last-close. True high/low are preserved so the
-engine's true-range ATR14 / EMA9 see exactly what the backtest saw — NOT a
-close-to-close proxy.
+Bar construction:
+  - DRY_RUN replay aggregates sub-2-min bars into clock-aligned 2-min buckets
+    (epoch %120; first-open/max-high/min-low/last-close) — matches src/data/resample.py.
+  - LIVE uses DELAYED market data (reqMktData, type 3). reqRealTimeBars needs a CME
+    real-time subscription the paper account lacks (Error 420), so we poll the
+    delayed last price across each 120s window and build the bar's O/H/L/C from that
+    stream. (IB's ticker.high/low/open are DAY-level delayed ticks, not a 2-min
+    window, so they are NOT used.) Either path feeds the same engine, so its
+    true-range ATR14 / EMA9 see real per-bar high/low — never a close-to-close proxy.
 
 Order flow (per completed 2-min bar) — STOPLESS, matching the verified backtest:
   - engine ENTER_LONG -> entry MarketOrder only. NO protective stop is placed:
@@ -224,16 +228,40 @@ class FadeBridge:
             self.warm([(b.open, b.high, b.low, b.close) for b in hist])
         except Exception as e:
             self._log(f"WARMUP skipped (no historical): {e}")
-        bars = ib.reqRealTimeBars(contract, 5, "TRADES", useRTH=False)
-        bars.updateEvent += self._on_rt_bar
-        self._log("LIVE reqRealTimeBars(5s) -> 2m aggregation. Ctrl-C to stop.")
-        ib.run()
+        # Delayed market data poll (type 3 was set on connect). reqRealTimeBars
+        # needs a CME real-time sub the paper account lacks (Error 420).
+        ticker = ib.reqMktData(contract, "", False, False)
+        self._log("LIVE reqMktData(delayed type 3) -> 2-min polling loop. Ctrl-C to stop.")
+        self._poll_loop(ib, ticker)
 
-    def _on_rt_bar(self, bars, hasNewBar) -> None:
-        if not hasNewBar:
-            return
-        b = bars[-1]
-        self.agg.add(int(b.time.timestamp()), b.open_, b.high, b.low, b.close, b.volume)
+    def _poll_loop(self, ib, ticker, window_s: int = 120, poll_s: int = 5) -> None:
+        while True:
+            bar = self._poll_one_bar(ib, ticker, window_s, poll_s)
+            if bar is None:                           # no valid price all window
+                self._log("POLL warning: no valid last/close this 2-min window; "
+                          "skipping bar (retry next cycle)")
+                continue
+            now = datetime.now(timezone.utc).timestamp()
+            epoch = int(now) - (int(now) % 120)
+            self.on_closed_bar(epoch, *bar)
+
+    @staticmethod
+    def _poll_one_bar(ib, ticker, window_s: int = 120, poll_s: int = 5):
+        """Build one 2-min bar from the delayed last-price stream over the window:
+        O = first valid last, H/L = running max/min, C = last valid last. Falls back
+        to the delayed close when last is nan; returns None if nothing valid arrives."""
+        o = h = l = c = None
+        for _ in range(max(1, window_s // poll_s)):
+            ib.sleep(poll_s)                          # runs the asyncio event loop
+            px = ticker.last
+            if not (px == px and px is not None and px > 0):   # nan / invalid
+                px = ticker.close                     # delayed close fallback
+            if px == px and px is not None and px > 0:
+                o = px if o is None else o
+                h = px if h is None else max(h, px)
+                l = px if l is None else min(l, px)
+                c = px
+        return None if o is None else (o, h, l, c)
 
     def run_dry(self, replay_path: str, last_bars: int = 3000) -> None:
         self._log(f"DRY_RUN replay {replay_path} (sub-bars -> 2m aggregation)")
