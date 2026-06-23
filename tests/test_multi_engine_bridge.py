@@ -52,6 +52,23 @@ def test_dry_run_book_trades_tagged_and_netted():
     assert b.net == sum(st["pos"] for st in b.states)
 
 
+def test_heartbeat_covers_all_engines():
+    if not os.path.exists(_DATA_1M):
+        print("  [skip] 1m data not present"); return
+    b = _bridge()
+    b.run_dry(_DATA_1M, last_bars=20000)               # populates per-engine bar counts
+    # every engine consumed bars at its timeframe (alive), and heartbeat names all 9
+    assert all(st["bars"] > 0 for st in b.states)
+    import io, contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        b._heartbeat()
+    line = buf.getvalue()
+    assert f"9/9 engines fed" in line
+    for st in b.states:
+        assert st["spec"].id in line                   # each engine reported
+
+
 def test_shutdown_flattens_and_summarizes():
     if not os.path.exists(_DATA_1M):
         print("  [skip] 1m data not present"); return

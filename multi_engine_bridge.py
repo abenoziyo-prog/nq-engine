@@ -76,7 +76,8 @@ class MultiEngineBridge:
         self.states = []            # per-engine: dict(spec, engine, pos, entry, entry_ts)
         self.by_tf: dict[int, list] = {}
         for s in self.specs:
-            st = {"spec": s, "engine": s.make(), "pos": 0, "entry": None, "entry_ts": None}
+            st = {"spec": s, "engine": s.make(), "pos": 0, "entry": None,
+                  "entry_ts": None, "bars": 0}
             self.states.append(st)
             self.by_tf.setdefault(s.tf_min, []).append(st)
         # one aggregator per distinct timeframe (bind tf via default arg)
@@ -87,6 +88,8 @@ class MultiEngineBridge:
         self.bars_seen = 0
         self.trades = []
         self.warming = False
+        self.hb_every = 5           # heartbeat every N 1m sub-bars (~5 min live)
+        self._last_hb = 0
 
         os.makedirs(logdir, exist_ok=True)
         d = session_date or datetime.now(timezone.utc).strftime("%Y%m%d")
@@ -104,11 +107,21 @@ class MultiEngineBridge:
         self.bars_seen += 1
         for agg in self.aggs.values():
             agg.add(epoch, o, h, l, c, vol)
+        # live heartbeat: prove every engine is alive + consuming bars (not just fills)
+        if not self.dry_run and not self.warming and self.bars_seen - self._last_hb >= self.hb_every:
+            self._last_hb = self.bars_seen
+            self._heartbeat()
+
+    def _heartbeat(self):
+        alive = sum(1 for st in self.states if st["bars"] > 0)
+        detail = " ".join(f"{st['spec'].id}(b{st['bars']}/p{st['pos']})" for st in self.states)
+        self._log(f"HEARTBEAT {alive}/{len(self.states)} engines fed · net={self.net} · {detail}")
 
     def _on_tf_close(self, tf, epoch, o, h, l, c, vol):
         bar_ts = datetime.fromtimestamp(int(epoch), tz=timezone.utc)
         for st in self.by_tf[tf]:
             eng = st["engine"]
+            st["bars"] += 1                          # per-engine liveness counter
             if st["spec"].needs_ts:
                 eng.feed_ts(bar_ts)
             dec = eng.on_bar(o, h, l, c)
