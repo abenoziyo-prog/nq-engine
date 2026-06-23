@@ -62,8 +62,11 @@ Expected: Account DUQ794374, NetLiquidation ~$1,000,086, positions flat, P&L $0.
 
 `ib_fade_bridge.py` imports the verified `src/engine/meanrev_fade.py` (zero drift —
 proven by `tests/test_ib_fade_bridge.py::test_zero_drift_vs_harness`), aggregates
-IBKR 5-sec realtime bars into true-OHLC 2-min bars, and attaches a disaster stop at
-`entry - 2.5*ATR` (signal-driven exit, no hard TP).
+IBKR 5-sec realtime bars into true-OHLC 2-min bars, and trades it **stopless**:
+entry MarketOrder only, exit on the engine's reversion signal. The disaster stop was
+swept and **removed** — `research/disaster_stop_sweep.md` showed every STOP_ATR value
+cuts PF below the stopless 5.06 and the stopless maxDD (−$491) already fits the $2K
+prop limit.
 
 ```zsh
 .venv/bin/python ib_fade_bridge.py              # PAPER LIVE (needs Gateway + .env)

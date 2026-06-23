@@ -11,17 +11,20 @@ first-open / max-high / min-low / last-close. True high/low are preserved so the
 engine's true-range ATR14 / EMA9 see exactly what the backtest saw — NOT a
 close-to-close proxy.
 
-Order flow (per completed 2-min bar):
-  - engine ENTER_LONG -> risk-vetted entry MarketOrder + a protective disaster
-    Stop at entry - STOP_ATR*atr (STOP_ATR=2.5). NO hard take-profit: the exit is
-    signal-driven (the engine's reversion EXIT).
-  - engine EXIT_LONG  -> cancel the resting stop + closing MarketOrder.
+Order flow (per completed 2-min bar) — STOPLESS, matching the verified backtest:
+  - engine ENTER_LONG -> entry MarketOrder only. NO protective stop is placed:
+    research/disaster_stop_sweep.md (commit 79c7d49) showed every STOP_ATR value
+    cuts PF below the stopless 5.06 and the stopless maxDD (-$491) already fits the
+    $2K prop limit, so the stop is not supported by the data.
+  - engine EXIT_LONG  -> closing MarketOrder (signal-driven reversion exit only).
+  The risk layer still sizes/vetoes using the firm's ACCOUNT catastrophe distance
+  (catastrophe_atr_mult*ATR) — a sizing bound and halt backstop, NOT a placed order.
 
 Safety: orders route through src/bridge/ibkr_client.py, which places PAPER orders
 only (CLAUDE.md operator amendment 2026-06-23) — live ports/accounts are refused
 and DRY_RUN is the default. Fills are tagged operator-external/paper. Paper P&L
 flatters real P&L (optimistic fills + delayed data); this run validates that the
-engine fires and the stop behaves, NOT the dollar numbers.
+engine fires, NOT the dollar numbers.
 
 Usage:
   .venv/bin/python ib_fade_bridge.py              # paper live (needs Gateway + .env)
@@ -40,12 +43,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.engine.meanrev_fade import MeanRevFadeEngine, MeanRevConfig
 from src.engine.v4 import _Ema, _Atr               # same verified indicator code
 from src.bridge.ibkr_client import IBKRClient, IBKRConfig
-from src.bridge.oso import round_tick, build_flatten
+from src.bridge.oso import build_flatten
 from src.risk.manager import RiskManager, AccountState, OrderProposal, Verdict
 
-SYMBOL_LOCAL = "MNQU6"
-CONTRACT_CONID = 793356225          # operator-verified 2026-06-23 (MNQ Sep 2026)
-STOP_ATR_DEFAULT = 2.5
+SYMBOL_LOCAL = "MNQU6"              # MNQ Sep 2026, conId 793356225 (verified 2026-06-23)
 FRICTION_PTS = 1.0                  # matches the backtest harness
 POINT_VALUE = 2.0                   # MNQ $/pt
 FILL_TAG = "operator-external/paper"
@@ -89,13 +90,15 @@ class TwoMinAggregator:
 
 
 class FadeBridge:
-    def __init__(self, dry_run: bool = True, stop_atr: float = STOP_ATR_DEFAULT,
-                 simulate_stop: bool = True, route_risk: bool = True,
+    def __init__(self, dry_run: bool = True, route_risk: bool = False,
                  logdir: str = "logs", session_date: str | None = None):
         self.dry_run = dry_run
-        self.stop_atr = stop_atr
-        self.simulate_stop = simulate_stop      # DRY_RUN: model intrabar stop fills
-        self.route_risk = route_risk            # send entries through the risk veto
+        # route_risk default OFF: the verified stopless run is single-contract and
+        # took every entry; the risk manager's per-trade sizing requires a stop, and
+        # with the stop removed a 4*ATR catastrophe notional would veto exactly the
+        # volatile fade entries that are the edge. Opt in (True) for an account-level
+        # veto if you accept that drift. Strategy is 1 contract; historical DD -$491.
+        self.route_risk = route_risk
 
         # live client targets the paper Gateway (port 4002, clientId 2); .env overrides.
         self.client = IBKRClient(IBKRConfig(dry_run=dry_run, port=4002, client_id=2))
@@ -109,7 +112,6 @@ class FadeBridge:
         self.qty = 0
         self.entry_price = None
         self.entry_ts = None
-        self.stop_price = None
         self.bars_processed = 0
         self.trades: list[dict] = []
         self.agg = TwoMinAggregator(self.on_closed_bar)
@@ -119,7 +121,7 @@ class FadeBridge:
         self.logpath = os.path.join(logdir, f"paper_session_{d}.log")
         self.logf = open(self.logpath, "a")
         self._log(f"START mode={'DRY_RUN' if dry_run else 'PAPER_LIVE-intent'} "
-                  f"stop_atr={stop_atr} engine=MEANREV_FADE_2M symbol={SYMBOL_LOCAL}")
+                  f"STOPLESS engine=MEANREV_FADE_2M symbol={SYMBOL_LOCAL}")
 
     # ---- logging ----
     def _log(self, msg: str) -> None:
@@ -141,17 +143,7 @@ class FadeBridge:
         self._log(f"BAR ts={bar_ts.isoformat()} c={self._fmt(c)} ema9={self._fmt(ema)} "
                   f"atr={self._fmt(atr)} dist={self._fmt(dist)} pos={self.position}")
 
-        # PAPER_LIVE: the broker holds the real protective stop; reconcile each bar
-        # so a fired stop is reflected here (we can't see it intrabar).
-        if not self.dry_run and self.position > 0:
-            self._reconcile_broker(bar_ts)
-
-        # DRY_RUN: model the protective stop firing intrabar (low pierces the stop).
-        if (self.dry_run and self.simulate_stop and self.position > 0
-                and self.stop_price is not None and l <= self.stop_price):
-            self._exit(bar_ts, self.stop_price, "DISASTER_STOP")
-            return
-
+        # Stopless: the only exit is the engine's signal-driven reversion EXIT.
         dec = self.engine.on_bar(o, h, l, c)
         if dec is None:
             return
@@ -163,42 +155,35 @@ class FadeBridge:
 
     # ---- order actions ----
     def _enter(self, ts, entry, atr) -> None:
-        stop_dist = self.stop_atr * atr
+        qty = 1
         if self.route_risk:
+            # No protective stop ORDER is placed (swept out — see module docstring /
+            # research/disaster_stop_sweep.md). The risk layer still sizes/vetoes
+            # using the firm's ACCOUNT catastrophe distance (catastrophe_atr_mult*ATR)
+            # — a sizing bound + halt backstop, never a placed order.
+            risk_stop_dist = self.risk.cfg.catastrophe_atr_mult * atr
             prop = OrderProposal(action="BUY", requested_qty=1, price=entry, atr=atr,
-                                 stop_dist=stop_dist, daily_aligned=False)
+                                 stop_dist=risk_stop_dist, daily_aligned=False)
             d = self.risk.evaluate(prop, self.acct)
             if d.verdict in (Verdict.REJECT, Verdict.HALT) or d.approved_qty <= 0:
-                # Skip the trade; leave the engine state untouched (it will reset on
-                # its own reversion exit). We simply place nothing.
+                # Risk veto — skip the trade; engine state is left untouched.
                 self._log(f"ENTER DROPPED verdict={d.verdict.value} reason={d.reason}")
                 return
-            qty, stop_price = d.approved_qty, round_tick(d.stop_price)
-        else:
-            qty, stop_price = 1, round_tick(entry - stop_dist)
+            qty = d.approved_qty
 
         payload = {"accountSpec": self.client.cfg.account_spec, "symbol": SYMBOL_LOCAL,
                    "action": "Buy", "orderQty": qty, "orderType": "Market",
-                   "isAutomated": True, "source": FILL_TAG,
-                   "bracket": {"stopLoss": {"action": "Sell", "orderType": "Stop",
-                                            "stopPrice": stop_price, "isAutomated": True}}}
+                   "isAutomated": True, "source": FILL_TAG}   # entry only, no stop
         ack = self.client.place_order(payload)
-        self.position = qty; self.qty = qty; self.entry_price = entry
-        self.entry_ts = ts; self.stop_price = stop_price
+        self.position = qty; self.qty = qty; self.entry_price = entry; self.entry_ts = ts
         self.acct.open_position = qty
-        self._log(f"FILL ENTER ({FILL_TAG}) qty={qty} entry={self._fmt(entry)} "
-                  f"stop={self._fmt(stop_price)} stop_atr={self.stop_atr} "
+        self._log(f"FILL ENTER ({FILL_TAG}) STOPLESS qty={qty} entry={self._fmt(entry)} "
                   f"atr={self._fmt(atr)} mode={ack['mode']} order={ack.get('orderId')}")
 
     def _exit(self, ts, exit_price, reason) -> None:
-        broker_closed = reason.startswith("DISASTER_STOP")   # resting stop did the close
-        if not broker_closed:
-            self.client.cancel_open_orders()                 # cancel the resting stop
-            ack = self.client.place_order(
-                build_flatten(SYMBOL_LOCAL, self.position, account_spec=self.client.cfg.account_spec))
-            mode = ack["mode"]
-        else:
-            mode = self.client.mode
+        # signal-driven close — there is no resting stop to cancel
+        ack = self.client.place_order(
+            build_flatten(SYMBOL_LOCAL, self.position, account_spec=self.client.cfg.account_spec))
         pnl_pts = (exit_price - self.entry_price) - FRICTION_PTS
         self.trades.append({"entry_ts": self.entry_ts, "entry": self.entry_price,
                             "exit_ts": ts, "exit": exit_price, "qty": self.position,
@@ -208,22 +193,10 @@ class FadeBridge:
         self.acct.realized_pnl_total += dollars
         self.acct.high_water = max(self.acct.high_water, self.acct.realized_pnl_total)
         self._log(f"FILL EXIT ({FILL_TAG}) reason={reason} exit={self._fmt(exit_price)} "
-                  f"pnl_pts={pnl_pts:+.2f} (${dollars:+.0f}) qty={self.position} mode={mode}")
+                  f"pnl_pts={pnl_pts:+.2f} (${dollars:+.0f}) qty={self.position} mode={ack['mode']}")
         self.position = 0; self.qty = 0; self.entry_price = None
-        self.entry_ts = None; self.stop_price = None
+        self.entry_ts = None
         self.acct.open_position = 0
-
-    def _reconcile_broker(self, ts) -> None:
-        try:
-            sync = self.client.sync_request()
-        except Exception as e:                       # never let a sync error kill the loop
-            self._log(f"RECONCILE error: {e}")
-            return
-        bpos = sum(p.get("position", 0) for p in sync.get("positions", [])
-                   if p.get("conId") == CONTRACT_CONID)
-        if bpos == 0 and self.position > 0:
-            self._log("RECONCILE broker flat while bridge long -> protective stop fired")
-            self._exit(ts, self.stop_price, "DISASTER_STOP_BROKER")
 
     # ---- warmup (indicator-only; no phantom positions) ----
     def warm(self, bars) -> None:
@@ -279,7 +252,6 @@ class FadeBridge:
         self._log("SHUTDOWN initiated")
         if self.position > 0:
             try:
-                self.client.cancel_open_orders()
                 ack = self.client.place_order(
                     build_flatten(SYMBOL_LOCAL, self.position,
                                   account_spec=self.client.cfg.account_spec))
@@ -313,13 +285,12 @@ def main():
     ap = argparse.ArgumentParser(description="MEANREV_FADE_2M live paper runner (IBKR)")
     ap.add_argument("--dry-run", action="store_true",
                     help="offline replay with simulated fills (no Gateway)")
-    ap.add_argument("--stop-atr", type=float, default=STOP_ATR_DEFAULT)
     ap.add_argument("--replay", default="src/data/MNQ_1m_12mo_databento.csv",
                     help="DRY_RUN: sub-2min bar CSV to replay (aggregated to 2m)")
     ap.add_argument("--bars", type=int, default=3000, help="DRY_RUN: replay last N sub-bars")
     args = ap.parse_args()
 
-    bridge = FadeBridge(dry_run=args.dry_run, stop_atr=args.stop_atr)
+    bridge = FadeBridge(dry_run=args.dry_run)
     _signal.signal(_signal.SIGINT, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
     try:
         if args.dry_run:
