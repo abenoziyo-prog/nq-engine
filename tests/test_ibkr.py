@@ -25,7 +25,12 @@ def _set(env):
 
 
 def _clear():
-    for k in ("IBKR_ACCOUNT", "IBKR_PORT", "IBKR_HOST", "IBKR_CLIENT_ID"):
+    # Force "no paper creds" independently of the repo .env. IBKRClient.load_env_file()
+    # re-reads .env via os.environ.setdefault, so popping IBKR_ACCOUNT would let a
+    # populated .env leak back in; setting it empty (a present, falsy value) blocks
+    # that and yields has_credentials=False.
+    os.environ["IBKR_ACCOUNT"] = ""
+    for k in ("IBKR_PORT", "IBKR_HOST", "IBKR_CLIENT_ID"):
         os.environ.pop(k, None)
 
 
