@@ -12,3 +12,6 @@ __pycache__/
 
 # Working scratch data dir (canonical CSVs live in src/data/)
 data/
+
+# Live paper session logs (runtime output)
+logs/*.log

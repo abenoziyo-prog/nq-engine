@@ -46,6 +46,8 @@ class _MockIB:
         self.connected = False
         self.market_data_type = None
         self.placed = []          # (contract, order) tuples
+        self._open = []           # resting trades
+        self.cancelled = []
         self.disconnected = False
     def connect(self, host, port, clientId):
         self.connected = True
@@ -58,7 +60,15 @@ class _MockIB:
         return [SimpleNamespace(localSymbol="MNQU6", conId=793356225, symbol="MNQ")]
     def placeOrder(self, contract, order):
         self.placed.append((contract, order))
-        return SimpleNamespace(order=order, orderStatus=SimpleNamespace(status="PreSubmitted"))
+        trade = SimpleNamespace(order=order, contract=contract,
+                                orderStatus=SimpleNamespace(status="PreSubmitted"))
+        self._open.append(trade)
+        return trade
+    def openTrades(self):
+        return list(self._open)
+    def cancelOrder(self, order):
+        self.cancelled.append(order)
+        self._open = [t for t in self._open if t.order is not order]
     def positions(self, account):
         return [SimpleNamespace(
             contract=SimpleNamespace(localSymbol="MNQU6", symbol="MNQ", conId=793356225),
@@ -199,6 +209,44 @@ def test_place_order_paper_live_flatten_single():
             assert ack["legs"][0]["action"] == "SELL" and ack["legs"][0]["qty"] == 2
     finally:
         _clear()
+
+
+def test_place_order_paper_live_stop_only_bracket():
+    # fade runner: entry Market + disaster Stop, NO take-profit (exit is signal-driven)
+    _set(_PAPER)
+    try:
+        with _patch_ib():
+            c = IBKRClient(IBKRConfig(dry_run=False))
+            c.authenticate()
+            payload = {"accountSpec": "PAPER", "symbol": "MNQU6", "action": "Buy",
+                       "orderQty": 1, "orderType": "Market", "isAutomated": True,
+                       "bracket": {"stopLoss": {"action": "Sell", "orderType": "Stop",
+                                                "stopPrice": 20950, "isAutomated": True}}}
+            ack = c.place_order(payload)
+            assert len(ack["legs"]) == 2                  # parent + stop only
+            assert ack["legs"][1]["action"] == "SELL"
+            assert c._ib.placed[1][1].auxPrice == 20950 and c._ib.placed[1][1].transmit is True
+    finally:
+        _clear()
+
+
+def test_cancel_open_orders_paper_live():
+    _set(_PAPER)
+    try:
+        with _patch_ib():
+            c = IBKRClient(IBKRConfig(dry_run=False))
+            c.authenticate()
+            c.place_order(build_flatten("MNQU6", 1, account_spec="PAPER"))
+            res = c.cancel_open_orders()
+            assert res["cancelled"] == 1 and len(c._ib.cancelled) == 1
+    finally:
+        _clear()
+
+
+def test_cancel_open_orders_dry_run_stub():
+    _clear()
+    c = IBKRClient()
+    assert c.cancel_open_orders()["mode"] == "DRY_RUN"
 
 
 def test_sync_request_paper_live():

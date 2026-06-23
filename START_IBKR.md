@@ -60,20 +60,26 @@ Expected: Account DUQ794374, NetLiquidation ~$1,000,086, positions flat, P&L $0.
 
 ## STEP 5 — Start the fade engine bridge
 
-> **STATUS (2026-06-23): `ib_fade_bridge.py` is NOT built yet.** The IBKR *client*
-> (connect / place_order / sync) is unblocked and tested, but the runner that
-> imports `src/engine/meanrev_fade.py`, aggregates IBKR bars into true-OHLC 2-min
-> bars, attaches the disaster stop, and drives the client is the next task. Do not
-> expect this step to work until that lands.
+`ib_fade_bridge.py` imports the verified `src/engine/meanrev_fade.py` (zero drift —
+proven by `tests/test_ib_fade_bridge.py::test_zero_drift_vs_harness`), aggregates
+IBKR 5-sec realtime bars into true-OHLC 2-min bars, and attaches a disaster stop at
+`entry - 2.5*ATR` (signal-driven exit, no hard TP).
 
 ```zsh
-python3 ib_fade_bridge.py   # once built
+.venv/bin/python ib_fade_bridge.py              # PAPER LIVE (needs Gateway + .env)
+.venv/bin/python ib_fade_bridge.py --dry-run    # offline replay, simulated fills
 ```
-Leave running. Logs every bar, signal, fill. Kill with Ctrl-C.
+Leave running. Logs every bar (close/ema9/atr/dist/pos) and every fill to
+`logs/paper_session_YYYYMMDD.log`. Ctrl-C flattens, cancels orders, writes a summary.
 
-Until then, verify the client path with the offline tests:
+> PAPER LIVE requires `IBKR_ACCOUNT=DU*` on a paper port (4002) in `.env`; otherwise
+> the client stays in DRY_RUN and the live runner refuses to start (use `--dry-run`).
+> Realtime bars may not stream under delayed-only data — a known limitation; the
+> dry-run path exercises the full signal/stop/order logic without Gateway.
+
+Verify the plumbing offline anytime:
 ```zsh
-.venv/bin/python tests/test_ibkr.py
+.venv/bin/python tests/test_ibkr.py && .venv/bin/python tests/test_ib_fade_bridge.py
 ```
 
 ---

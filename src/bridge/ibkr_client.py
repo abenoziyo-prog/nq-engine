@@ -156,8 +156,9 @@ class IBKRClient:
 
     def _build_ib_orders(self, payload: dict) -> list:
         """Translate an OSO payload (src/bridge/oso.py) into ib_async orders.
-        Entry is Market; a bracket adds an OCA take-profit (Limit) + stop (Stop),
-        both children of the parent. A flatten payload (no bracket) is a lone Market."""
+        Entry is Market; a bracket adds OCA-linked children — a take-profit (Limit)
+        and/or a stop (Stop). The fade runner uses a STOP-ONLY bracket (no TP: the
+        exit is signal-driven). A flatten payload (no bracket) is a lone Market."""
         from ib_async import MarketOrder, LimitOrder, StopOrder
         side = self._ib_side(payload["action"])
         qty = int(payload["orderQty"])
@@ -169,20 +170,25 @@ class IBKRClient:
             parent.transmit = True
             return [parent]
 
-        exit_side = self._ib_side(br["takeProfit"]["action"])
+        tp, sl = br.get("takeProfit"), br.get("stopLoss")
+        if not (tp or sl):
+            parent.transmit = True
+            return [parent]
+        exit_side = self._ib_side((tp or sl)["action"])
         oca = f"oso-{parent.orderId}"
         parent.transmit = False
-        tp = LimitOrder(exit_side, qty, br["takeProfit"]["price"])
-        tp.orderId = self._ib.client.getReqId()
-        tp.parentId = parent.orderId
-        tp.account = self._account
-        tp.ocaGroup = oca; tp.ocaType = 1; tp.transmit = False
-        sl = StopOrder(exit_side, qty, br["stopLoss"]["stopPrice"])
-        sl.orderId = self._ib.client.getReqId()
-        sl.parentId = parent.orderId
-        sl.account = self._account
-        sl.ocaGroup = oca; sl.ocaType = 1; sl.transmit = True   # last leg transmits the set
-        return [parent, tp, sl]
+        children = []
+        if tp:
+            children.append(LimitOrder(exit_side, qty, tp["price"]))
+        if sl:
+            children.append(StopOrder(exit_side, qty, sl["stopPrice"]))
+        for i, o in enumerate(children):
+            o.orderId = self._ib.client.getReqId()
+            o.parentId = parent.orderId
+            o.account = self._account
+            o.ocaGroup = oca; o.ocaType = 1
+            o.transmit = (i == len(children) - 1)   # last leg transmits the whole set
+        return [parent, *children]
 
     def place_order(self, payload: dict) -> dict:
         """Record + (DRY_RUN) simulate, or (PAPER_LIVE) submit a paper order.
@@ -229,6 +235,21 @@ class IBKRClient:
                 "NetLiquidation": _f("NetLiquidation"),
                 "UnrealizedPnL": _f("UnrealizedPnL"),
                 "RealizedPnL": _f("RealizedPnL")}
+
+    def cancel_open_orders(self) -> dict:
+        """Cancel resting orders on our contract (e.g. a protective stop before a
+        signal-driven flatten). Stubbed in DRY_RUN."""
+        if self.mode == "DRY_RUN":
+            return {"mode": "DRY_RUN", "cancelled": 0, "note": "stub — no live socket"}
+        if self._ib is None or not self._connected:
+            raise RuntimeError("not connected — call authenticate() first")
+        our_id = getattr(self._contract, "conId", None)
+        n = 0
+        for t in self._ib.openTrades():
+            if getattr(t.contract, "conId", None) == our_id:
+                self._ib.cancelOrder(t.order); n += 1
+        self._ib.sleep(0)
+        return {"mode": "PAPER_LIVE", "cancelled": n}
 
     def disconnect(self) -> None:
         if self._ib is not None and self._connected:
