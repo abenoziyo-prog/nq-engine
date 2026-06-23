@@ -6,3 +6,9 @@
 # Python
 __pycache__/
 *.pyc
+
+# Virtualenv — never commit the interpreter/site-packages
+.venv/
+
+# Working scratch data dir (canonical CSVs live in src/data/)
+data/

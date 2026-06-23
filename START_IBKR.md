@@ -1,6 +1,12 @@
 # IBKR Paper Trading Engine — Full Startup Sequence
 # Run from scratch, computer just opened.
 
+> **Scope:** PAPER trading only (account DUQ794374). Per CLAUDE.md "Operator
+> amendments", paper-order placement is authorized; live/real-money placement is
+> NOT. The client (`src/bridge/ibkr_client.py`) hard-refuses live ports (7496/4001)
+> and non-`DU` accounts, and stays in DRY_RUN unless `IBKR_ACCOUNT`=DU* + a paper
+> port + `dry_run=False` are all set. **All steps below assume py3.11 `.venv`.**
+
 ## STEP 1 — Start IB Gateway
 
 Open IB Gateway (Applications or Dock).
@@ -54,14 +60,20 @@ Expected: Account DUQ794374, NetLiquidation ~$1,000,086, positions flat, P&L $0.
 
 ## STEP 5 — Start the fade engine bridge
 
+> **STATUS (2026-06-23): `ib_fade_bridge.py` is NOT built yet.** The IBKR *client*
+> (connect / place_order / sync) is unblocked and tested, but the runner that
+> imports `src/engine/meanrev_fade.py`, aggregates IBKR bars into true-OHLC 2-min
+> bars, attaches the disaster stop, and drives the client is the next task. Do not
+> expect this step to work until that lands.
+
 ```zsh
-python3 ib_fade_bridge.py
+python3 ib_fade_bridge.py   # once built
 ```
 Leave running. Logs every bar, signal, fill. Kill with Ctrl-C.
 
-If bridge not yet built:
+Until then, verify the client path with the offline tests:
 ```zsh
-claude -p "$(cat build/BUILD_AGENT_PROMPT.txt)" --permission-mode acceptEdits
+.venv/bin/python tests/test_ibkr.py
 ```
 
 ---

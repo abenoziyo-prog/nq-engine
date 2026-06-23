@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from src.risk.manager import (RiskManager, AccountState, OrderProposal, Verdict)
 from src.bridge.oso import build_oso, build_flatten
 from src.bridge.tradovate_client import TradovateClient
+from src.bridge.ibkr_client import IBKRClient
 
 
 @dataclass
@@ -29,9 +30,12 @@ class Signal:
 
 
 class Bridge:
-    def __init__(self, risk: RiskManager | None = None, client: TradovateClient | None = None):
+    # Active execution venue is now IBKR (paper). The client is duck-typed —
+    # any object exposing authenticate / place_order / sync_request / cfg.account_spec
+    # works; TradovateClient remains a drop-in alternative.
+    def __init__(self, risk: RiskManager | None = None, client=None):
         self.risk = risk or RiskManager()
-        self.client = client or TradovateClient()
+        self.client = client or IBKRClient()
         self.client.authenticate()
         self.log: list[dict] = []
 

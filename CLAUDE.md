@@ -25,6 +25,28 @@ attempt to place, modify, or cancel orders.
    and concentration (what % of profit came from the top 3 trades).
 8. Report integrity issues to the operator; never fix the vault silently.
 
+## Operator amendments to the constitution (logged, dated)
+- **2026-06-23 — Rule 1 PARTIAL OVERRIDE (PAPER ONLY).** The operator explicitly
+  authorized this agent to place **paper** orders on the IBKR demo account
+  (DUQ794374, Gateway port 4002) to forward-test the verified fade engine. This
+  narrows — does not delete — rule 1: **live/real-money order placement remains
+  forbidden.** The code-level guards stay enforced and must NOT be removed: live
+  ports (7496/4001) are hard-refused, and only `DU*` paper accounts are accepted;
+  DRY_RUN stays the default when those are unset. If either guard is ever asked to
+  be loosened (real account, live port), STOP and get a fresh explicit override —
+  this amendment does not extend to live trading.
+
+## Operator amendments to the constitution (logged, dated)
+- **2026-06-23 — Rule 1 PARTIAL OVERRIDE (PAPER ONLY).** The operator explicitly
+  authorized this agent to place **paper** orders on the IBKR demo account
+  (DUQ794374, Gateway port 4002) to forward-test the verified fade engine. This
+  narrows — does not delete — rule 1: **live/real-money order placement remains
+  forbidden.** The code-level guards stay enforced and must NOT be removed: live
+  ports (7496/4001) are hard-refused, and only `DU*` paper accounts are accepted;
+  DRY_RUN stays the default when those are unset. If either guard is ever asked to
+  be loosened (real account, live port), STOP and get a fresh explicit override —
+  this amendment does not extend to live trading.
+
 ## Project philosophy (operator's, internalize it)
 - The unit of edge is the deployment decision, not the model. Models are regime-matched
   instruments; the job is to identify the current regime and deploy the right tool, then
