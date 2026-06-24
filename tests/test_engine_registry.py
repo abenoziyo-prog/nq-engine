@@ -8,10 +8,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.bridge.engine_registry import REGISTRY, enabled_specs
 
 
-def test_all_ten_registered():
-    assert len(REGISTRY) == 10
+def test_registry_long_short_counts():
     ids = {s.id for s in REGISTRY}
     assert "MEANREV_FADE_2M" in ids and "SHOCK_V1" in ids
+    longs = [s for s in REGISTRY if not s.id.endswith("_SHORT")]
+    shorts = [s for s in REGISTRY if s.id.endswith("_SHORT")]
+    assert len(longs) == 10 and len(shorts) == 7        # 10 long/disabled + 7 short mirrors
+    assert len(enabled_specs()) == 16                   # 9 long + 7 short (SHOCK off)
+    for s in shorts:
+        assert s.gate_status.startswith("SHORT MIRROR")
 
 
 def test_shock_disabled_with_reason():

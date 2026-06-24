@@ -129,32 +129,38 @@ class MultiEngineBridge:
                 continue
             sig = str(dec["signal"])
             if sig.endswith("ENTER_LONG") and st["pos"] == 0:
-                self._enter(st, bar_ts, dec)
+                self._enter(st, bar_ts, dec, "Buy")
+            elif sig.endswith("ENTER_SHORT") and st["pos"] == 0:
+                self._enter(st, bar_ts, dec, "Sell")
             elif sig.endswith("EXIT_LONG") and st["pos"] > 0:
+                self._exit(st, bar_ts, dec)
+            elif sig.endswith("EXIT_SHORT") and st["pos"] < 0:
                 self._exit(st, bar_ts, dec)
 
     # ---- orders (per-engine, tagged) ----
-    def _enter(self, st, ts, dec):
+    def _enter(self, st, ts, dec, side):
         spec = st["spec"]; qty = int(dec.get("qty", 1)); price = dec["price"]
         payload = {"accountSpec": self.client.cfg.account_spec, "symbol": SYMBOL_LOCAL,
-                   "action": "Buy", "orderQty": qty, "orderType": "Market",
+                   "action": side, "orderQty": qty, "orderType": "Market",
                    "isAutomated": True, "strategy": spec.id,
                    "gate_status": spec.gate_status, "source": FILL_TAG}
         ack = self.client.place_order(payload)
-        st["pos"] = qty; st["entry"] = price; st["entry_ts"] = ts; self.net += qty
-        self._log(f"FILL ENTER {spec.id} qty={qty} entry={price:.2f} net={self.net} "
-                  f"mode={ack['mode']} [{spec.gate_status}]")
+        signed = qty if side == "Buy" else -qty            # short positions are negative
+        st["pos"] = signed; st["entry"] = price; st["entry_ts"] = ts; self.net += signed
+        self._log(f"FILL ENTER {'LONG' if side == 'Buy' else 'SHORT'} {spec.id} qty={qty} "
+                  f"entry={price:.2f} net={self.net} mode={ack['mode']} [{spec.gate_status}]")
 
     def _exit(self, st, ts, dec):
-        spec = st["spec"]; price = dec["price"]; qty = st["pos"]
-        payload = build_flatten(SYMBOL_LOCAL, qty, account_spec=self.client.cfg.account_spec)
+        spec = st["spec"]; price = dec["price"]; pos = st["pos"]
+        payload = build_flatten(SYMBOL_LOCAL, pos, account_spec=self.client.cfg.account_spec)
         payload["strategy"] = spec.id; payload["source"] = FILL_TAG
         ack = self.client.place_order(payload)
-        pnl = (price - st["entry"]) - FRICTION_PTS
+        pnl = (price - st["entry"]) if pos > 0 else (st["entry"] - price)   # signed by side
+        pnl -= FRICTION_PTS
         self.trades.append({"strategy": spec.id, "entry": st["entry"], "exit": price,
-                            "pnl_pts": pnl, "qty": qty, "entry_ts": st["entry_ts"],
+                            "pnl_pts": pnl, "qty": abs(pos), "entry_ts": st["entry_ts"],
                             "exit_ts": ts, "gate_status": spec.gate_status})
-        self.net -= qty
+        self.net -= pos
         self._log(f"FILL EXIT {spec.id} exit={price:.2f} pnl_pts={pnl:+.2f} "
                   f"net={self.net} mode={ack['mode']}")
         st["pos"] = 0; st["entry"] = None; st["entry_ts"] = None
@@ -222,7 +228,7 @@ class MultiEngineBridge:
     def shutdown(self):
         self._log("SHUTDOWN initiated")
         for st in self.states:
-            if st["pos"] > 0:
+            if st["pos"] != 0:                         # flatten longs (>0) and shorts (<0)
                 try:
                     p = build_flatten(SYMBOL_LOCAL, st["pos"],
                                       account_spec=self.client.cfg.account_spec)

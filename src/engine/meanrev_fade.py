@@ -24,6 +24,8 @@ class Signal(str, Enum):
     NONE = "NONE"
     ENTER_LONG = "ENTER_LONG"
     EXIT_LONG = "EXIT_LONG"
+    ENTER_SHORT = "ENTER_SHORT"
+    EXIT_SHORT = "EXIT_SHORT"
 
 
 @dataclass
@@ -32,6 +34,7 @@ class MeanRevConfig:
     atr_len: int = 14
     entry_dist: float = -3.0       # enter when (close-EMA9)/ATR <= -3.0
     exit_dist: float = -0.5        # exit when close >= EMA9 - 0.5*ATR
+    direction: str = "long"        # "long" (default, verified) or "short" (mirror)
 
 
 class MeanRevFadeEngine:
@@ -48,16 +51,23 @@ class MeanRevFadeEngine:
         if atr is None or ema is None or atr <= 0:
             return None
 
+        short = self.cfg.direction == "short"
         if self.in_pos:
-            # exit on reversion back near the mean
-            if c >= ema + self.cfg.exit_dist * atr:
+            # exit on reversion back near the mean (mirrored for shorts)
+            if not short and c >= ema + self.cfg.exit_dist * atr:
                 self.in_pos = False
                 return {"signal": Signal.EXIT_LONG, "price": c, "qty": 1}
+            if short and c <= ema - self.cfg.exit_dist * atr:
+                self.in_pos = False
+                return {"signal": Signal.EXIT_SHORT, "price": c, "qty": 1}
             return None
 
-        # entry: stretched >= 3 ATR below EMA9
+        # entry: long = stretched >=3 ATR BELOW EMA9; short mirror = >=3 ATR ABOVE
         distance = (c - ema) / atr
-        if distance <= self.cfg.entry_dist:
+        if not short and distance <= self.cfg.entry_dist:
             self.in_pos = True
             return {"signal": Signal.ENTER_LONG, "price": c, "qty": 1}
+        if short and distance >= -self.cfg.entry_dist:
+            self.in_pos = True
+            return {"signal": Signal.ENTER_SHORT, "price": c, "qty": 1}
         return None

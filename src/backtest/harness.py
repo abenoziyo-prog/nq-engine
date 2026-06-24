@@ -32,8 +32,8 @@ def run_backtest(bars, engine: Engine, friction_pts: float = 1.0,
     trades = []
     entry_px = None
     entry_ts = None
-    from collections import defaultdict
-    daily = defaultdict(float)
+    entry_qty = 1
+    entry_side = 0          # +1 long, -1 short (0 = flat)
 
     for row in bars:
         ts, o, h, l, c = row[0], row[1], row[2], row[3], row[4]
@@ -41,13 +41,21 @@ def run_backtest(bars, engine: Engine, friction_pts: float = 1.0,
         dec = engine.on_bar(o, h, l, c, dg, dr)
         if dec is None:
             continue
-        sig = dec["signal"]
-        if str(sig).endswith("ENTER_LONG"):
-            entry_px = dec["price"]; entry_ts = ts
-        elif str(sig).endswith("EXIT_LONG") and entry_px is not None:
-            pnl = dec["price"] - entry_px - friction_pts
-            trades.append({"pnl": pnl, "exit_ts": ts, "entry_ts": entry_ts})
-            entry_px = None; entry_ts = None
+        sig = str(dec["signal"])
+        if sig.endswith("ENTER_LONG"):
+            entry_px = dec["price"]; entry_ts = ts; entry_qty = int(dec.get("qty", 1)); entry_side = 1
+        elif sig.endswith("ENTER_SHORT"):
+            entry_px = dec["price"]; entry_ts = ts; entry_qty = int(dec.get("qty", 1)); entry_side = -1
+        elif sig.endswith("EXIT_LONG") and entry_side == 1:
+            pnl_pts = dec["price"] - entry_px - friction_pts   # per-contract points
+            trades.append({"pnl": pnl_pts * entry_qty, "pnl_pts": pnl_pts,
+                           "qty": entry_qty, "exit_ts": ts, "entry_ts": entry_ts})
+            entry_px = None; entry_ts = None; entry_qty = 1; entry_side = 0
+        elif sig.endswith("EXIT_SHORT") and entry_side == -1:
+            pnl_pts = entry_px - dec["price"] - friction_pts   # short: profit when price falls
+            trades.append({"pnl": pnl_pts * entry_qty, "pnl_pts": pnl_pts,
+                           "qty": entry_qty, "exit_ts": ts, "entry_ts": entry_ts})
+            entry_px = None; entry_ts = None; entry_qty = 1; entry_side = 0
 
     return trades, _stats(trades)
 

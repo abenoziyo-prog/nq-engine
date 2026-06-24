@@ -31,7 +31,8 @@ def test_book_excludes_shock_and_has_engines():
     b = _bridge()
     ids = {st["spec"].id for st in b.states}
     assert "SHOCK_V1" not in ids                       # disabled (no volume)
-    assert "MEANREV_FADE_2M" in ids and len(ids) == 9  # all feed-feasible engines
+    assert "MEANREV_FADE_2M" in ids and len(ids) == 16 # 9 long + 7 short mirrors
+    assert "MEANREV_FADE_2M_SHORT" in ids              # short mirrors present
     assert set(b.by_tf) == {2, 5, 15}                  # three timeframes wired
 
 
@@ -64,7 +65,7 @@ def test_heartbeat_covers_all_engines():
     with contextlib.redirect_stdout(buf):
         b._heartbeat()
     line = buf.getvalue()
-    assert f"9/9 engines fed" in line
+    assert "16/16 engines fed" in line
     for st in b.states:
         assert st["spec"].id in line                   # each engine reported
 
@@ -76,6 +77,29 @@ def test_shutdown_flattens_and_summarizes():
     b.run_dry(_DATA_1M, last_bars=40000)
     b.shutdown()
     assert all(st["pos"] == 0 for st in b.states) and b.net == 0   # flat after shutdown
+
+
+def test_short_mirror_direction_isolation():
+    # short config must emit ONLY short signals; long config ONLY long (zero leakage)
+    import csv
+    from src.engine.meanrev_fade import MeanRevFadeEngine, MeanRevConfig
+    path = "src/data/MNQ_2m_12mo_databento.csv"
+    if not os.path.exists(path):
+        print("  [skip] 2m data not present"); return
+    rows = list(csv.DictReader(open(path)))[-30000:]
+
+    def sigs(cfg):
+        e = MeanRevFadeEngine(cfg); out = set()
+        for r in rows:
+            d = e.on_bar(float(r["open"]), float(r["high"]), float(r["low"]), float(r["close"]))
+            if d:
+                out.add(str(d["signal"]))
+        return out
+
+    s_short = sigs(MeanRevConfig(direction="short"))
+    s_long = sigs(MeanRevConfig())
+    assert s_short and all("SHORT" in s for s in s_short), s_short
+    assert s_long and all("LONG" in s for s in s_long), s_long
 
 
 def _run_all():

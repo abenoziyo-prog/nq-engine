@@ -18,6 +18,8 @@ class Signal(str, Enum):
     NONE = "NONE"
     ENTER_LONG = "ENTER_LONG"
     EXIT_LONG = "EXIT_LONG"
+    ENTER_SHORT = "ENTER_SHORT"
+    EXIT_SHORT = "EXIT_SHORT"
 
 
 @dataclass
@@ -26,9 +28,11 @@ class V4Config:
     slow: int = 50
     atr_len: int = 14
     k_atr: float = 0.02
+    k_fixed: Optional[float] = None   # if set, use a fixed point threshold instead of k_atr*ATR
     stop_atr: float = 4.0
     accel: bool = True
     daily_align_size: bool = True
+    direction: str = "long"           # "long" (default, verified) or "short" (mirror)
 
 
 class _Ema:
@@ -93,29 +97,48 @@ class V4Engine:
         if atr is None or dg is None or ddg is None or self._bars < self.cfg.slow:
             return None
 
-        k = self.cfg.k_atr * atr
+        k = self.cfg.k_fixed if self.cfg.k_fixed is not None else self.cfg.k_atr * atr
+        short = self.cfg.direction == "short"
         decision = None
 
         if not self.state.in_position:
-            enter = abs(g) <= k and g < 0 and dg > 0 and (ddg > 0 if self.cfg.accel else True)
-            if enter:
-                aligned = self.cfg.daily_align_size and daily_gap > 0 and daily_rising
-                qty = 2 if aligned else 1
-                stop = c - self.cfg.stop_atr * atr
-                self.state = V4State(in_position=True, entry_price=c, qty=qty, stop_price=stop)
-                decision = {"signal": Signal.ENTER_LONG, "price": c, "qty": qty,
-                            "stop": stop, "atr": atr, "daily_aligned": aligned}
-        else:
+            if not short:
+                enter = abs(g) <= k and g < 0 and dg > 0 and (ddg > 0 if self.cfg.accel else True)
+                if enter:
+                    aligned = self.cfg.daily_align_size and daily_gap > 0 and daily_rising
+                    qty = 2 if aligned else 1
+                    stop = c - self.cfg.stop_atr * atr
+                    self.state = V4State(in_position=True, entry_price=c, qty=qty, stop_price=stop)
+                    decision = {"signal": Signal.ENTER_LONG, "price": c, "qty": qty,
+                                "stop": stop, "atr": atr, "daily_aligned": aligned}
+            else:
+                # short mirror: EMA9 above EMA50, converging down, accelerating down
+                enter = abs(g) <= k and g > 0 and dg < 0 and (ddg < 0 if self.cfg.accel else True)
+                if enter:
+                    aligned = self.cfg.daily_align_size and daily_gap < 0 and not daily_rising
+                    qty = 2 if aligned else 1
+                    stop = c + self.cfg.stop_atr * atr
+                    self.state = V4State(in_position=True, entry_price=c, qty=qty, stop_price=stop)
+                    decision = {"signal": Signal.ENTER_SHORT, "price": c, "qty": qty,
+                                "stop": stop, "atr": atr, "daily_aligned": aligned}
+        elif not short:
             # catastrophe stop check (intrabar low would trigger live; on closed bars use low)
             if l <= self.state.stop_price:
-                px = self.state.stop_price
-                decision = {"signal": Signal.EXIT_LONG, "price": px, "reason": "catastrophe_stop",
+                decision = {"signal": Signal.EXIT_LONG, "price": self.state.stop_price,
+                            "reason": "catastrophe_stop", "qty": self.state.qty}
+                self.state = V4State()
+            elif abs(g) <= k and g > 0 and dg < 0:
+                decision = {"signal": Signal.EXIT_LONG, "price": c, "reason": "signal_exit",
                             "qty": self.state.qty}
                 self.state = V4State()
-            else:
-                exit_ = abs(g) <= k and g > 0 and dg < 0
-                if exit_:
-                    decision = {"signal": Signal.EXIT_LONG, "price": c, "reason": "signal_exit",
-                                "qty": self.state.qty}
-                    self.state = V4State()
+        else:
+            # short mirror exits: catastrophe above, or anticipated up-cross
+            if h >= self.state.stop_price:
+                decision = {"signal": Signal.EXIT_SHORT, "price": self.state.stop_price,
+                            "reason": "catastrophe_stop", "qty": self.state.qty}
+                self.state = V4State()
+            elif abs(g) <= k and g < 0 and dg > 0:
+                decision = {"signal": Signal.EXIT_SHORT, "price": c, "reason": "signal_exit",
+                            "qty": self.state.qty}
+                self.state = V4State()
         return decision
