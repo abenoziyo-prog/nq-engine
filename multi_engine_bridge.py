@@ -88,6 +88,7 @@ class MultiEngineBridge:
         self.bars_seen = 0
         self.trades = []
         self.warming = False
+        self.last_px = None         # most recent close seen (for shutdown-flatten P&L)
         self.hb_every = 5           # heartbeat every N 1m sub-bars (~5 min live)
         self._last_hb = 0
 
@@ -119,6 +120,7 @@ class MultiEngineBridge:
 
     def _on_tf_close(self, tf, epoch, o, h, l, c, vol):
         bar_ts = datetime.fromtimestamp(int(epoch), tz=timezone.utc)
+        self.last_px = c                               # latest market price seen
         for st in self.by_tf[tf]:
             eng = st["engine"]
             st["bars"] += 1                          # per-engine liveness counter
@@ -229,15 +231,29 @@ class MultiEngineBridge:
         self._log("SHUTDOWN initiated")
         for st in self.states:
             if st["pos"] != 0:                         # flatten longs (>0) and shorts (<0)
+                pos, entry = st["pos"], st["entry"]
                 try:
-                    p = build_flatten(SYMBOL_LOCAL, st["pos"],
+                    p = build_flatten(SYMBOL_LOCAL, pos,
                                       account_spec=self.client.cfg.account_spec)
-                    p["strategy"] = st["spec"].id
+                    p["strategy"] = st["spec"].id; p["source"] = FILL_TAG
                     ack = self.client.place_order(p)
-                    self._log(f"SHUTDOWN flatten {st['spec'].id} qty={st['pos']} mode={ack['mode']}")
+                    # record the forced flatten as a completed trade so the summary
+                    # matches reality (exit ~ last close seen; broker has exact fill)
+                    pnl = None
+                    if entry is not None and self.last_px is not None:
+                        pnl = ((self.last_px - entry) if pos > 0 else (entry - self.last_px)) - FRICTION_PTS
+                        self.trades.append({"strategy": st["spec"].id, "entry": entry,
+                                            "exit": self.last_px, "pnl_pts": pnl, "qty": abs(pos),
+                                            "entry_ts": st["entry_ts"],
+                                            "exit_ts": datetime.now(timezone.utc),
+                                            "gate_status": st["spec"].gate_status,
+                                            "reason": "shutdown_flatten"})
+                    pnl_s = f"pnl_pts~{pnl:+.2f}" if pnl is not None else "pnl_pts=?"
+                    self._log(f"SHUTDOWN flatten {st['spec'].id} qty={pos} "
+                              f"exit~{self.last_px} {pnl_s} mode={ack['mode']}")
                 except Exception as e:
                     self._log(f"SHUTDOWN flatten {st['spec'].id} error: {e}")
-                self.net -= st["pos"]; st["pos"] = 0
+                self.net -= pos; st["pos"] = 0
         self._summary()
         try:
             self.client.disconnect()

@@ -79,6 +79,23 @@ def test_shutdown_flattens_and_summarizes():
     assert all(st["pos"] == 0 for st in b.states) and b.net == 0   # flat after shutdown
 
 
+def test_shutdown_flatten_records_trade_pnl():
+    # the logging gap fix: a position open at shutdown is recorded as a completed
+    # trade with P&L (was previously dropped -> summary showed trades=0)
+    b = _bridge()
+    st = b.states[0]                                   # pretend it's long 1 @ 100
+    st["pos"] = 1; st["entry"] = 100.0
+    st["entry_ts"] = "t0"; b.last_px = 110.0           # last close seen = 110
+    n_before = len(b.trades)
+    b.shutdown()
+    assert len(b.trades) == n_before + 1
+    t = b.trades[-1]
+    assert t["reason"] == "shutdown_flatten"
+    assert t["entry"] == 100.0 and t["exit"] == 110.0
+    assert abs(t["pnl_pts"] - (110.0 - 100.0 - 1.0)) < 1e-9   # +9 (10pt move - 1pt friction)
+    assert all(s["pos"] == 0 for s in b.states)
+
+
 def test_short_mirror_direction_isolation():
     # short config must emit ONLY short signals; long config ONLY long (zero leakage)
     import csv
