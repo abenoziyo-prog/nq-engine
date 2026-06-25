@@ -23,6 +23,7 @@
 | OB_STRICT_SINGLE_TOUCH | Strict-mitigation OB | both | SUPERSEDED | — | — | — | — | — | — |
 | EMA_CROSS_CASCADE_RSI55 | Cross cascade 3m>5m>15m 7x50 +RSI55 (operator-ext) | multi | FINDING (low-freq, ~80/yr; UNVERIFIED) | — | — | — | 2.36 floor | — | — |
 | EMA_CROSS_CONFIRMED | Crossover at confirmed cross | 5m | **FALSIFIED** | 511 | 27% | −2,307 | 0.89 | −3,216 | — |
+| EMA_CROSS_9_50_5M | EMA9/50 cross flip, long+short, momentum-filtered (operator-requested 2026-06-24) | 5m | **FALSIFIED** | 1,826 | 27% | −18,657 | 0.74 | −19,811pt (−$39.6k) | — |
 
 ## ⚠ 12-month databento OOS update (2026-06-15)
 Exchange-direct 1m MNQ (352,695 bars, Jun 2025–Jun 2026, with volume, front-month U5/Z5/H6/M6) is now the **primary dataset** and gave the **first true out-of-sample** test (vault V4 was tuned only on Mar–Jun 2026). The deployment lens is the **$2K trailing prop limit** — PF means little if max DD blows the account.

@@ -31,9 +31,9 @@ def test_book_excludes_shock_and_has_engines():
     b = _bridge()
     ids = {st["spec"].id for st in b.states}
     assert "SHOCK_V1" not in ids                       # disabled (no volume)
-    assert "MEANREV_FADE_2M" in ids and len(ids) == 16 # 9 long + 7 short mirrors
-    assert "MEANREV_FADE_2M_SHORT" in ids              # short mirrors present
-    assert set(b.by_tf) == {2, 5, 15}                  # three timeframes wired
+    assert "MEANREV_FADE_2M" in ids and len(ids) == 20 # 9 long + 7 short + 4 ema-cross
+    assert "MEANREV_FADE_2M_SHORT" in ids and "EMA_CROSS_9_50_1M" in ids
+    assert set(b.by_tf) == {1, 2, 3, 5, 15}            # timeframes wired (1m/3m added)
 
 
 def test_dry_run_book_trades_tagged_and_netted():
@@ -65,7 +65,7 @@ def test_heartbeat_covers_all_engines():
     with contextlib.redirect_stdout(buf):
         b._heartbeat()
     line = buf.getvalue()
-    assert "16/16 engines fed" in line
+    assert "20/20 engines fed" in line
     for st in b.states:
         assert st["spec"].id in line                   # each engine reported
 

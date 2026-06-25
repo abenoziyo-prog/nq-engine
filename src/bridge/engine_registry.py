@@ -16,6 +16,7 @@ from typing import Callable, Optional
 from src.engine.meanrev_fade import MeanRevFadeEngine, MeanRevConfig
 from src.engine.v4 import V4Engine, V4Config
 from src.engine.lvl_imb import LvlImbEngine, LvlImbConfig
+from src.engine.ema_cross import EmaCrossEngine, EmaCrossConfig
 from src.data.model import Session
 
 
@@ -37,6 +38,7 @@ class EngineSpec:
 # or the active brake skews trades. k=0.75/1.5 are FIXED-point thresholds (k_fixed).
 NO_STOP = 1e9   # matches research scripts' disable sentinel
 _SHORT = "SHORT MIRROR — UNTESTED (vault: short mirrors untested)"
+_CROSS = "EMA9/50 CROSS — FALSIFIED (PF 0.74, -$40k DD); data-collection only (operator-requested)"
 
 
 def _v4(**kw):
@@ -79,6 +81,14 @@ REGISTRY: list[EngineSpec] = [
     EngineSpec("EMA_PROX_V4_5M_SHORT", _v4(k_atr=0.02, direction="short"), 5, _SHORT),
     EngineSpec("EMA_PROX_V0B_5M_SHORT", _v4(k_fixed=0.75, accel=False, direction="short"), 5, _SHORT),
     EngineSpec("EMA_PROX_V0_15M_K15_SHORT", _v4(k_fixed=1.5, accel=False, direction="short"), 15, _SHORT),
+
+    # --- EMA9/50 CROSS (operator-requested 2026-06-24) — FALSIFIED in backtest
+    #     (PF 0.74, ~-$37k/yr, -$40k DD). Deployed on 4 timeframes for forward SAMPLE
+    #     DATA only (high-frequency flip), NOT because it has edge. ---
+    EngineSpec("EMA_CROSS_9_50_1M", lambda: EmaCrossEngine(EmaCrossConfig()), 1, _CROSS),
+    EngineSpec("EMA_CROSS_9_50_2M", lambda: EmaCrossEngine(EmaCrossConfig()), 2, _CROSS),
+    EngineSpec("EMA_CROSS_9_50_3M", lambda: EmaCrossEngine(EmaCrossConfig()), 3, _CROSS),
+    EngineSpec("EMA_CROSS_9_50_5M", lambda: EmaCrossEngine(EmaCrossConfig()), 5, _CROSS),
 
     EngineSpec("SHOCK_V1", lambda: None, 1,
                "FINDING (sub-gate)", enabled=False,

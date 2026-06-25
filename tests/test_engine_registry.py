@@ -10,11 +10,11 @@ from src.bridge.engine_registry import REGISTRY, enabled_specs
 
 def test_registry_long_short_counts():
     ids = {s.id for s in REGISTRY}
-    assert "MEANREV_FADE_2M" in ids and "SHOCK_V1" in ids
-    longs = [s for s in REGISTRY if not s.id.endswith("_SHORT")]
+    assert "MEANREV_FADE_2M" in ids and "SHOCK_V1" in ids and "EMA_CROSS_9_50_5M" in ids
     shorts = [s for s in REGISTRY if s.id.endswith("_SHORT")]
-    assert len(longs) == 10 and len(shorts) == 7        # 10 long/disabled + 7 short mirrors
-    assert len(enabled_specs()) == 16                   # 9 long + 7 short (SHOCK off)
+    cross = [s for s in REGISTRY if s.id.startswith("EMA_CROSS_9_50")]
+    assert len(shorts) == 7 and len(cross) == 4
+    assert len(enabled_specs()) == 20                   # 9 long + 7 short + 4 ema-cross (SHOCK off)
     for s in shorts:
         assert s.gate_status.startswith("SHORT MIRROR")
 
@@ -36,7 +36,7 @@ def test_enabled_engines_construct_and_have_on_bar():
 
 def test_every_spec_has_gate_status_and_valid_tf():
     for s in REGISTRY:
-        assert s.gate_status and s.tf_min in (1, 2, 5, 15)
+        assert s.gate_status and s.tf_min in (1, 2, 3, 5, 15)
 
 
 def _run_all():
