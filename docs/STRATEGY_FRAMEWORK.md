@@ -1,9 +1,15 @@
 # Strategy Framework — systematic generation, testing, and deployment
 
-How a trading idea becomes (or fails to become) a deployed strategy in this engine.
-The goal is a **repeatable pipeline with hard gates**, so every idea is tested the
-same way and every result — win or lose — is recorded. Built from what this repo has
-learned the hard way (see *Codified lessons*).
+How an edge is **discovered**, then how it becomes (or fails to become) a deployed
+strategy. The framework has two halves and the first is the point:
+
+1. **DISCOVERY** — systematically *find* candidate edges from the data itself
+   (`research/discover_edges.py`). The edge is an **output of the framework**, not a
+   hypothesis you have to bring. This is the "identify and generate strategies" goal.
+2. **VALIDATION** — test every candidate the same way, with hard gates, and record
+   the result win or lose (`research/validate_strategy.py` + the vault).
+
+Built from what this repo has learned the hard way (see *Codified lessons*).
 
 ---
 
@@ -26,27 +32,37 @@ learned the hard way (see *Codified lessons*).
 ## 1. The pipeline
 
 ```
-  HYPOTHESIS → ENGINE → BACKTEST → VALIDATE → RECORD → FORWARD-TEST → DECIDE
-   (stage 0)   (1)       (2)        (3)        (4)       (5)           (6)
+  DISCOVER → HYPOTHESIS → ENGINE → BACKTEST → VALIDATE → RECORD → FORWARD-TEST → DECIDE
+  (stage 0)  (1)          (2)       (3)        (4)        (5)      (6)            (7)
 ```
 
-Each stage has an exit gate. An idea that fails a gate is recorded FALSIFIED and stops.
+Each stage has an exit gate. A candidate that fails a gate is recorded FALSIFIED and stops.
 
-### Stage 0 — Hypothesis
-State the edge in one sentence, tagged by family and what makes it *location/timing*
-rather than *indicator*. Define entry, exit, stop, and the regime it should work in
-**before** any backtest. Pre-registration prevents fitting to outcomes.
+### Stage 0 — Discover (the framework finds the edge)
+`python research/discover_edges.py --tf 5` scans a library of **location / timing /
+regime conditions** and measures the forward return after each (long *and* short,
+horizons 6/12/24 bars). It surfaces the conditions whose forward edge is statistically
+reliable (t-stat) and beats the unconditional baseline. **Each surfaced row is a
+candidate edge.** This mechanizes "edge lives in location + timing, not indicators":
+test many (where, when, regime) conditions, keep the ones with signal, ignore the rest.
+Extend the condition library in that file to widen the search.
 
-### Stage 1 — Engine
+### Stage 1 — Hypothesis
+Turn a surfaced edge into a one-sentence, pre-registered hypothesis: entry, exit, stop,
+and the regime it should hold in — **before** the full backtest. (Pre-registration on
+the *surfaced* candidate, then confirm on a holdout, guards against multiple-testing
+luck: discovery scans many cells, so some clear the bar by chance.)
+
+### Stage 2 — Engine
 Implement as an engine class with the standard `on_bar` contract (see §2). Copy
 `src/engine/_template_engine.py`. The SAME class runs backtest and live (Invariant #1).
 
-### Stage 2 — Backtest
+### Stage 3 — Backtest
 `python research/validate_strategy.py <module:Class>` runs the gate battery on the
 databento data. Core metrics: PF, win%, n, max DD, trades/day, effective (day-level)
 sample size, top-3 concentration.
 
-### Stage 3 — Validate (the hard gates)
+### Stage 4 — Validate (the hard gates)
 | Gate | Threshold | Why |
 |---|---|---|
 | **Drift control** | beats random same-session entries | not just market beta (B&H retired) |
@@ -57,18 +73,18 @@ sample size, top-3 concentration.
 | **Prop-fit** | **max DD fits the $2K trailing limit** | a model that blows the account is undeployable regardless of PF |
 | **Timing sweep** | test anticipatory/confirmed/delayed | mandatory before any FALSIFIED verdict (rule 5) |
 
-### Stage 4 — Record (always)
+### Stage 5 — Record (always)
 Add a row to `strategy_vault.json` + `STRATEGY_VAULT.md` with status, metrics, rules,
 caveats — **win or lose**. This is the memory that prevents rediscovery.
 
-### Stage 5 — Forward-test (paper)
+### Stage 6 — Forward-test (paper)
 Register in `src/bridge/engine_registry.py`, run on IBKR paper via
 `multi_engine_bridge.py`, gate-tagged with its vault status. **Caveat:** the live feed
 is delayed (~15 min) → fills slip ~70 pt vs signal price. Forward P&L is read from the
 **broker** (`trade_log.py`), never the bridge's own logged pnl. Use forward-test to
 confirm the engine *fires correctly and the stop behaves*, not the dollar numbers.
 
-### Stage 6 — Decide (promote or kill)
+### Stage 7 — Decide (promote or kill)
 `frozen config → blind OOS → shadow (paper) → capital`. A strategy earns capital only
 by passing every gate. Kill the moment forward data contradicts the backtest.
 
@@ -100,18 +116,24 @@ Long-only statuses are **REGIME-CONDITIONAL**, tagged as such (rule 6).
 
 ---
 
-## 4. Strategy generation (systematic ideation)
+## 4. Strategy generation (systematic)
 
-Generate candidates, don't wait for inspiration:
-1. **Families to mine** — LOCATION: order-block zones, prior session H/L, PD-mid,
+Generate candidates from the data, don't wait for inspiration:
+1. **Scan the data — `research/discover_edges.py` (primary mechanism).** A conditional
+   forward-return scan over a library of location/timing/regime conditions × direction ×
+   horizon; surfaces the conditions with a reliable, baseline-beating forward edge
+   (t-stat ranked). Each surfaced row is a candidate. **This is how the framework
+   *identifies* the edge** — widen it by adding conditions to the library. Recent run
+   surfaced e.g. *NY_PM long*, *fade-the-60-bar-high short*, *buy-the-60-bar-low long*.
+2. **Families to mine** (to extend the condition library) — LOCATION: order-block zones, prior session H/L, PD-mid,
    liquidity sweeps/reclaims. TIMING: session opens (NY ORB), MOC/gamma windows,
    first-overnight-break commitment. STRUCTURE: shock continuation, VWAP mean-reversion
    on balance days. REGIME: the same signal long in up-tape / short in down-tape (the
    06-26 finding: shorts lose up-tape, win down-tape).
-2. **Variant sweeps** — given a base engine, sweep its key parameter (k, timeframe,
+3. **Variant sweeps** — given a base engine, sweep its key parameter (k, timeframe,
    band, stop) like `research/multi_engine_fidelity.py` and `disaster_stop_sweep.py`.
    Generates a family of testable configs automatically.
-3. **Timing variants** — for any signal, always test anticipatory / confirmed / delayed
+4. **Timing variants** — for any signal, always test anticipatory / confirmed / delayed
    before falsifying (this is how V4's anticipatory variant beat the bare cross).
 
 ---
@@ -134,6 +156,7 @@ Generate candidates, don't wait for inspiration:
 |---|---|
 | `src/backtest/harness.py` | event-driven backtest; long+short; same code as live |
 | `src/backtest/drift_control.py` | random same-session drift benchmark |
+| `research/discover_edges.py` | **edge DISCOVERY** — scans location/timing/regime conditions for forward edge |
 | `research/validate_strategy.py` | **one-command gate battery** for any engine |
 | `research/multi_engine_fidelity.py` | regenerate the book's backtest numbers |
 | `src/bridge/engine_registry.py` | registry of deployed engines + gate_status |
