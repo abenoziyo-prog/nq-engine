@@ -7,6 +7,7 @@
 | ID | Strategy | TF | Status | n | Win% | Total pts | PF | MaxDD | Sharpe |
 |---|---|---|---|---|---|---|---|---|---|
 | MEANREV_FADE_2M | Mean-rev fade (3-ATR below EMA9) ★NEW | 2m | **CANDIDATE** (verified in-repo; full match) | 103 blind | 72% | +4,379 blind | **5.27** blind / 5.06 full (drift 0.75) | −245pt (−$491, fits $2K ✓) | 4.7 |
+| RANGE_REVERT_LONG_5M | Buy near 60-bar range low, exit on revert to EMA9 (★DISCOVERED by discover_edges.py) | 5m | **FINDING** (4/5 gates; real edge, DD>$2K) | 981 | 67% | +18,865 | **1.96** full / 2.46 blind-half / 1.64 recent | −1,697pt (−$3,395, **>$2K ✗**) | 1.82 |
 | OB_NYOPEN_BULL_1M | NY-open bullish OB reversion | 1m | **FALSIFIED** (single-entry; re-entry too) | 164 | 38% | −150 | 0.94 | — | — |
 | EMA_PROX_V4_5M | Proximity + acceleration | 5m | **FROZEN — ⚠ OOS FAILED** | 22 | 55% | +5,461 IS | 16.0 IS / **2.39** OOS / 0.99 blind-window | −212 IS / **−$2,582 OOS (>$2K ✗)** | 5.0 |
 | EMA_PROX_V4_15M | Proximity + accel (frozen 15m base) | 15m | CANDIDATE (verified, ⚠ low-n) | 19 | 47% | +4,188 | **3.57** (claim 3.67 ✓) / 1.91 blind | **−$989 (fits $2K ✓)** | 6.0 |
