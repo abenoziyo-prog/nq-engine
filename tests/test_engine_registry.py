@@ -13,8 +13,10 @@ def test_registry_long_short_counts():
     assert "MEANREV_FADE_2M" in ids and "SHOCK_V1" in ids and "EMA_CROSS_9_50_5M" in ids
     shorts = [s for s in REGISTRY if s.id.endswith("_SHORT")]
     cross = [s for s in REGISTRY if s.id.startswith("EMA_CROSS_9_50")]
-    assert len(shorts) == 7 and len(cross) == 4
-    assert len(enabled_specs()) == 20                   # 9 long + 7 short + 4 ema-cross (SHOCK off)
+    assert len(shorts) == 7 and len(cross) == 4         # still registered (history)...
+    assert len(enabled_specs()) == 9                    # ...but DISABLED — clean book = 9 long
+    enabled_ids = {s.id for s in enabled_specs()}
+    assert not any(s.id in enabled_ids for s in shorts + cross)   # losers are off
     for s in shorts:
         assert s.gate_status.startswith("SHORT MIRROR")
 

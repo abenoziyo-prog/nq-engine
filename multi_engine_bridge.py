@@ -141,29 +141,37 @@ class MultiEngineBridge:
 
     # ---- orders (per-engine, tagged) ----
     def _enter(self, st, ts, dec, side):
-        spec = st["spec"]; qty = int(dec.get("qty", 1)); price = dec["price"]
+        spec = st["spec"]; qty = int(dec.get("qty", 1)); sig_px = dec["price"]
         payload = {"accountSpec": self.client.cfg.account_spec, "symbol": SYMBOL_LOCAL,
                    "action": side, "orderQty": qty, "orderType": "Market",
                    "isAutomated": True, "strategy": spec.id,
                    "gate_status": spec.gate_status, "source": FILL_TAG}
         ack = self.client.place_order(payload)
+        if not ack.get("filled", True):                    # order rejected/cancelled -> no position
+            self._log(f"ENTER NOT FILLED {spec.id} {side} (rejected) mode={ack['mode']}")
+            return
+        entry = ack.get("fill_price") or sig_px            # ACTUAL broker fill, not signal price
         signed = qty if side == "Buy" else -qty            # short positions are negative
-        st["pos"] = signed; st["entry"] = price; st["entry_ts"] = ts; self.net += signed
+        st["pos"] = signed; st["entry"] = entry; st["entry_ts"] = ts; self.net += signed
+        slip = f" slip={entry - sig_px:+.1f}" if ack.get("fill_price") else ""
         self._log(f"FILL ENTER {'LONG' if side == 'Buy' else 'SHORT'} {spec.id} qty={qty} "
-                  f"entry={price:.2f} net={self.net} mode={ack['mode']} [{spec.gate_status}]")
+                  f"entry={entry:.2f}{slip} net={self.net} mode={ack['mode']} [{spec.gate_status}]")
 
     def _exit(self, st, ts, dec):
-        spec = st["spec"]; price = dec["price"]; pos = st["pos"]
+        spec = st["spec"]; sig_px = dec["price"]; pos = st["pos"]
         payload = build_flatten(SYMBOL_LOCAL, pos, account_spec=self.client.cfg.account_spec)
         payload["strategy"] = spec.id; payload["source"] = FILL_TAG
         ack = self.client.place_order(payload)
-        pnl = (price - st["entry"]) if pos > 0 else (st["entry"] - price)   # signed by side
-        pnl -= FRICTION_PTS
-        self.trades.append({"strategy": spec.id, "entry": st["entry"], "exit": price,
+        if not ack.get("filled", True):                    # flatten cancelled -> still in position
+            self._log(f"EXIT NOT FILLED {spec.id} — position stays open ({pos:+d}); retry next signal")
+            return
+        exit_px = ack.get("fill_price") or sig_px          # ACTUAL broker fill
+        pnl = ((exit_px - st["entry"]) if pos > 0 else (st["entry"] - exit_px)) - FRICTION_PTS
+        self.trades.append({"strategy": spec.id, "entry": st["entry"], "exit": exit_px,
                             "pnl_pts": pnl, "qty": abs(pos), "entry_ts": st["entry_ts"],
                             "exit_ts": ts, "gate_status": spec.gate_status})
         self.net -= pos
-        self._log(f"FILL EXIT {spec.id} exit={price:.2f} pnl_pts={pnl:+.2f} "
+        self._log(f"FILL EXIT {spec.id} exit={exit_px:.2f} pnl_pts={pnl:+.2f} "
                   f"net={self.net} mode={ack['mode']}")
         st["pos"] = 0; st["entry"] = None; st["entry_ts"] = None
 

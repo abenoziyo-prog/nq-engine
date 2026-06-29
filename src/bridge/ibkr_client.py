@@ -68,6 +68,7 @@ class IBKRConfig:
     env_prefix: str = "IBKR_"
     account_spec: str = "PAPER"      # logical label echoed onto order payloads
     market_data_type: int = 3        # 3 = delayed (no subscription needed)
+    fill_timeout_s: float = 8.0      # how long to wait for an order to confirm a fill
     # front-month MNQ contract (operator-verified 2026-06-23: MNQU6 conId 793356225)
     contract_symbol: str = "MNQ"
     contract_expiry: str = "20260918"
@@ -197,6 +198,7 @@ class IBKRClient:
         self.sent.append(rec)
         if self.mode == "DRY_RUN":
             return {"ok": True, "mode": "DRY_RUN", "orderId": f"SIM-{rec['seq']}",
+                    "filled": True, "fill_price": None,   # simulated fill
                     "isAutomated": payload.get("isAutomated"), "payload": payload}
 
         # PAPER_LIVE — submit to the paper account only.
@@ -207,12 +209,27 @@ class IBKRClient:
             raise RuntimeError("not connected — call authenticate() first")
         orders = self._build_ib_orders(payload)
         trades = [self._ib.placeOrder(self._contract, o) for o in orders]
-        self._ib.sleep(0)   # let the event loop flush the submissions
+        # CONFIRM the fill — wait for the parent (entry/flatten) to actually execute.
+        # An execution (parent.fills) is the truth; robust to the TIF-preset cancel/
+        # resubmit churn (Error 10349). Returns filled=False if nothing executes, so the
+        # bridge never assumes a position it doesn't hold.
+        parent = trades[0]
+        for _ in range(int(self.cfg.fill_timeout_s / 0.5)):
+            self._ib.sleep(0.5)
+            if parent.fills:
+                break
+        filled = bool(parent.fills)
+        if filled:
+            sh = sum(f.execution.shares for f in parent.fills)
+            fill_price = sum(f.execution.shares * f.execution.price for f in parent.fills) / sh
+        else:
+            fill_price = None
         legs = [{"orderId": t.order.orderId, "action": t.order.action,
                  "qty": t.order.totalQuantity, "type": t.order.orderType,
                  "status": getattr(t.orderStatus, "status", None)} for t in trades]
         return {"ok": True, "mode": "PAPER_LIVE", "account": self._account,
-                "orderId": trades[0].order.orderId, "legs": legs,
+                "filled": filled, "fill_price": fill_price,
+                "orderId": parent.order.orderId, "legs": legs,
                 "isAutomated": payload.get("isAutomated"), "payload": payload}
 
     def sync_request(self) -> dict:

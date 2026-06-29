@@ -74,21 +74,21 @@ REGISTRY: list[EngineSpec] = [
     # The book is long-biased because the regime is an up-tape, so expect these to
     # bleed — they run to GATHER forward data, gate-tagged, not because they're good.
     EngineSpec("MEANREV_FADE_2M_SHORT",
-               lambda: MeanRevFadeEngine(MeanRevConfig(direction="short")), 2, _SHORT),
-    EngineSpec("EMA_PROX_V4_15M_SHORT", _v4(k_atr=0.02, direction="short"), 15, _SHORT),
-    EngineSpec("EMA_PROX_V4_15M_K075_SHORT", _v4(k_fixed=0.75, direction="short"), 15, _SHORT),
-    EngineSpec("EMA_PROX_V4_15M_K15_SHORT", _v4(k_fixed=1.5, direction="short"), 15, _SHORT),
-    EngineSpec("EMA_PROX_V4_5M_SHORT", _v4(k_atr=0.02, direction="short"), 5, _SHORT),
-    EngineSpec("EMA_PROX_V0B_5M_SHORT", _v4(k_fixed=0.75, accel=False, direction="short"), 5, _SHORT),
-    EngineSpec("EMA_PROX_V0_15M_K15_SHORT", _v4(k_fixed=1.5, accel=False, direction="short"), 15, _SHORT),
+               lambda: MeanRevFadeEngine(MeanRevConfig(direction="short")), 2, _SHORT, enabled=False),   # DISABLED 2026-06-29: FALSIFIED, regime-conditional bleeder
+    EngineSpec("EMA_PROX_V4_15M_SHORT", _v4(k_atr=0.02, direction="short"), 15, _SHORT, enabled=False),   # DISABLED 2026-06-29: FALSIFIED, regime-conditional bleeder
+    EngineSpec("EMA_PROX_V4_15M_K075_SHORT", _v4(k_fixed=0.75, direction="short"), 15, _SHORT, enabled=False),   # DISABLED 2026-06-29: FALSIFIED, regime-conditional bleeder
+    EngineSpec("EMA_PROX_V4_15M_K15_SHORT", _v4(k_fixed=1.5, direction="short"), 15, _SHORT, enabled=False),   # DISABLED 2026-06-29: FALSIFIED, regime-conditional bleeder
+    EngineSpec("EMA_PROX_V4_5M_SHORT", _v4(k_atr=0.02, direction="short"), 5, _SHORT, enabled=False),   # DISABLED 2026-06-29: FALSIFIED, regime-conditional bleeder
+    EngineSpec("EMA_PROX_V0B_5M_SHORT", _v4(k_fixed=0.75, accel=False, direction="short"), 5, _SHORT, enabled=False),   # DISABLED 2026-06-29: FALSIFIED, regime-conditional bleeder
+    EngineSpec("EMA_PROX_V0_15M_K15_SHORT", _v4(k_fixed=1.5, accel=False, direction="short"), 15, _SHORT, enabled=False),   # DISABLED 2026-06-29: FALSIFIED, regime-conditional bleeder
 
     # --- EMA9/50 CROSS (operator-requested 2026-06-24) — FALSIFIED in backtest
     #     (PF 0.74, ~-$37k/yr, -$40k DD). Deployed on 4 timeframes for forward SAMPLE
     #     DATA only (high-frequency flip), NOT because it has edge. ---
-    EngineSpec("EMA_CROSS_9_50_1M", lambda: EmaCrossEngine(EmaCrossConfig()), 1, _CROSS),
-    EngineSpec("EMA_CROSS_9_50_2M", lambda: EmaCrossEngine(EmaCrossConfig()), 2, _CROSS),
-    EngineSpec("EMA_CROSS_9_50_3M", lambda: EmaCrossEngine(EmaCrossConfig()), 3, _CROSS),
-    EngineSpec("EMA_CROSS_9_50_5M", lambda: EmaCrossEngine(EmaCrossConfig()), 5, _CROSS),
+    EngineSpec("EMA_CROSS_9_50_1M", lambda: EmaCrossEngine(EmaCrossConfig()), 1, _CROSS, enabled=False),   # DISABLED 2026-06-29: FALSIFIED (PF 0.74), bled -$5,380 live
+    EngineSpec("EMA_CROSS_9_50_2M", lambda: EmaCrossEngine(EmaCrossConfig()), 2, _CROSS, enabled=False),   # DISABLED 2026-06-29: FALSIFIED (PF 0.74), bled -$5,380 live
+    EngineSpec("EMA_CROSS_9_50_3M", lambda: EmaCrossEngine(EmaCrossConfig()), 3, _CROSS, enabled=False),   # DISABLED 2026-06-29: FALSIFIED (PF 0.74), bled -$5,380 live
+    EngineSpec("EMA_CROSS_9_50_5M", lambda: EmaCrossEngine(EmaCrossConfig()), 5, _CROSS, enabled=False),   # DISABLED 2026-06-29: FALSIFIED (PF 0.74), bled -$5,380 live
 
     EngineSpec("SHOCK_V1", lambda: None, 1,
                "FINDING (sub-gate)", enabled=False,

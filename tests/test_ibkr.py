@@ -45,8 +45,9 @@ class _MockClient:
 
 class _MockIB:
     """Records calls; returns plausible paper responses. No network."""
-    def __init__(self, managed=("DU1234567",)):
+    def __init__(self, managed=("DU1234567",), fill=True):
         self._managed = list(managed)
+        self.fill = fill
         self.client = _MockClient()
         self.connected = False
         self.market_data_type = None
@@ -65,8 +66,13 @@ class _MockIB:
         return [SimpleNamespace(localSymbol="MNQU6", conId=793356225, symbol="MNQ")]
     def placeOrder(self, contract, order):
         self.placed.append((contract, order))
-        trade = SimpleNamespace(order=order, contract=contract,
-                                orderStatus=SimpleNamespace(status="PreSubmitted"))
+        fills, status = [], "PreSubmitted"
+        if self.fill:
+            ex = SimpleNamespace(shares=order.totalQuantity, price=29950.0)
+            fills, status = [SimpleNamespace(execution=ex)], "Filled"
+        trade = SimpleNamespace(order=order, contract=contract, fills=fills,
+                                orderStatus=SimpleNamespace(status=status,
+                                avgFillPrice=29950.0 if self.fill else 0.0))
         self._open.append(trade)
         return trade
     def openTrades(self):
@@ -89,8 +95,8 @@ class _MockIB:
         self.connected = False
 
 
-def _patch_ib(managed=("DU1234567",)):
-    return mock.patch("ib_async.IB", lambda: _MockIB(managed))
+def _patch_ib(managed=("DU1234567",), fill=True):
+    return mock.patch("ib_async.IB", lambda: _MockIB(managed, fill=fill))
 
 
 # ---------------- DRY_RUN + safety (no broker) ----------------
@@ -244,6 +250,22 @@ def test_cancel_open_orders_paper_live():
             c.place_order(build_flatten("MNQU6", 1, account_spec="PAPER"))
             res = c.cancel_open_orders()
             assert res["cancelled"] == 1 and len(c._ib.cancelled) == 1
+    finally:
+        _clear()
+
+
+def test_place_order_confirms_fill():
+    # fill-reconciliation: place_order reports the real fill (or filled=False if rejected)
+    _set(_PAPER)
+    try:
+        with _patch_ib(fill=True):
+            c = IBKRClient(IBKRConfig(dry_run=False)); c.authenticate()
+            ack = c.place_order(build_flatten("MNQU6", 1, account_spec="PAPER"))
+            assert ack["filled"] is True and ack["fill_price"] == 29950.0
+        with _patch_ib(fill=False):                    # order never executes (e.g. rejected)
+            c = IBKRClient(IBKRConfig(dry_run=False)); c.authenticate()
+            ack = c.place_order(build_flatten("MNQU6", 1, account_spec="PAPER"))
+            assert ack["filled"] is False and ack["fill_price"] is None
     finally:
         _clear()
 
